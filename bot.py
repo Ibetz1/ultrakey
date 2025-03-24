@@ -32,7 +32,7 @@ CLIENT_SECRET = os.getenv("j21t154HUpiui2md1d7jS9wUg_-fwOhU")
 REDIRECT_URI = os.getenv("https://ultrakey.onrender.com")  # Must match exactly in Discord Dev Portal
 OAUTH_SCOPE = "identify email"
 
-DISCORD_API_BASE = "https://discord.com/api"
+DISCORD_API_BASE = "https://discord.com/api/callback"
 
 @app.route("/")
 def index():
