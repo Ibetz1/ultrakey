@@ -1,0 +1,20 @@
+{
+  "left_analog_bindings": {},
+  "right_analog_bindings": {},
+  "button_bindings": {},
+  "toggle_bindings": {},
+  "scripts": [
+    "./configs/movementplus.uk/scripts/recoil.lua",
+    "./configs/movementplus.uk/scripts/superglide.lua",
+    "./configs/movementplus.uk/scripts/tapstrafe.lua"
+  ],
+  "lt_binding": 0,
+  "rt_binding": 0,
+  "ls_binding": 99,
+  "rs_binding": 99,
+  "threshold": false,
+  "sensitivity": 0.05,
+  "tagged_bindings": {
+    "17": "SUPERGLIDE"
+  }
+}
