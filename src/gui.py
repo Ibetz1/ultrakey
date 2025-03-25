@@ -1,6 +1,6 @@
 import sys
 from PyQt6.QtWidgets import *
-from PyQt6.QtGui import QKeyEvent, QIcon, QPixmap
+from PyQt6.QtGui import QKeyEvent, QIcon, QPixmap, QGuiApplication
 from PyQt6.QtCore import *
 import assets
 from functools import partial
@@ -315,37 +315,77 @@ class Container(QGroupBox):
         self.grid_data.append(widget)
         return widget
 
-class GUI():
+class Application(QApplication):
     def __init__(self):
-        self.init_ui()
+        super().__init__(sys.argv)
 
-    def bind_on_exit(self, on_exit):
-        if (callable(on_exit)):
-            self.app.aboutToQuit.connect(partial(on_exit))
+        self.main_window = QMainWindow()
+        self.main_window.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
 
-    def init_ui(self):
+        self.setStyleSheet(
+            assets.main_theme
+        )
+
+    def start(self):
+        self.main_window.show()
+        sys.exit(self.exec())
+
+    def set_interface(self, ui: QWidget):
+        self.main_window.setCentralWidget(ui)
+
+class GUI:
+    def __init__(self, style_sheet=None):
         self.app = QApplication(sys.argv)
         self.main_window = QMainWindow()
         self.main_window.setWindowTitle("Ultra Key")
 
-        # Create central widget
-        self.central_widget = QWidget()
-        self.main_layout = QVBoxLayout(self.central_widget)
-        self.main_layout.stretch(0)
-        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.window_cache = {}
 
-        self.main_window.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
-        self.main_window.setCentralWidget(self.central_widget)
+        if style_sheet:
+            self.app.setStyleSheet(style_sheet)
 
-        self.app.setStyleSheet(
-            assets.main_theme
-        )
+    def bind_on_exit(self, on_exit):
+        if callable(on_exit):
+            self.app.aboutToQuit.connect(on_exit)
+
+    def cache_window(self, name, widget):
+        self.bind_on_exit(widget.cleanup)
+        self.window_cache[name] = widget
+
+    def set_window(self, name):
+        self.main_window.setCentralWidget(self.window_cache[name])
+        self.main_window.adjustSize()
+        QTimer.singleShot(0, self.center_window)
+
+    def center_window(self):
+        screen = QGuiApplication.primaryScreen()
+        if screen:
+            screen_geometry = screen.availableGeometry()
+            window_geometry = self.main_window.frameGeometry()
+
+            print(window_geometry.width())
+            print(window_geometry.height())
+
+            # Calculate the top-left point to move the window to
+            x = screen_geometry.center().x() - window_geometry.width() // 2
+            y = screen_geometry.center().y() - window_geometry.height() // 2
+
+            self.main_window.move(x, y)
 
     def show(self):
         self.main_window.show()
-
         sys.exit(self.app.exec())
 
+class BaseUI(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.layout = QVBoxLayout()
+        self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.setLayout(self.layout)
+
     def add_widget(self, widget):
-        self.main_layout.addWidget(widget)
+        self.layout.addWidget(widget)
         return widget
+    
+    def cleanup(self):
+        pass

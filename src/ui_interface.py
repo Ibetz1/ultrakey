@@ -552,8 +552,9 @@ class FlagBindingContainer(Container):
         for i in range(ROWS):
             generate_row(i)
 
-class UltraKeyUI:
+class UltraKeyUI(BaseUI):
     def __init__(self, ui: GUI):
+        super().__init__()
         self.bindings: InputRemapper = InputRemapper()
         self.emulator: Emulator = Emulator()
         self.gui = ui
@@ -578,7 +579,7 @@ class UltraKeyUI:
         self.flag_bindings = FlagBindingContainer(self)
         self.config_container = ConfigContainer(self)
 
-        self.controls_row = self.gui.add_widget(Row(spacing=50))
+        self.controls_row = self.add_widget(Row(spacing=50))
         self.controls_row.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
 
         image_label = QLabel()
@@ -587,11 +588,11 @@ class UltraKeyUI:
         image_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         image_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        self.icon_row = self.gui.add_widget(Row())
+        self.icon_row = self.add_widget(Row())
         self.icon_row.add_widget(image_label)
         self.icon_row.add_widget(self.config_container)
         
-        self.main_row = self.gui.add_widget(Row())
+        self.main_row = self.add_widget(Row())
         self.sticks_col: Column = self.main_row.add_widget(Column())
         self.sticks_col.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
         self.sticks_col.add_widget(self.stick_container)
@@ -614,7 +615,6 @@ class UltraKeyUI:
             self.stick_container.stick_data,
             {k: v[0] for k, v in self.flag_bindings.row_data.items() },
         ]:
-            print(data)
             for _, widget in data.items():
                 if isinstance(widget, Row):
                     for item in widget.grid_data:
