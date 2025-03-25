@@ -12,6 +12,7 @@ from gui import *
 from ui_interface import UltraKeyUI
 import webbrowser
 
+REDIRECT_URI = "https://ultrakey.onrender.com/callback"
 UKPLUS_ID = "1353625283286007839"
 PREMIUM_ID = "1353625280111181856"
 OWNER_ID = "1353186170724683924"
@@ -72,7 +73,7 @@ def check_login_status(gui, roles, guilds):
             gui.set_window("purchase")
     else:
         gui.set_window("purchase")
-        
+
 class DiscordLogin(QWebEngineView):
     def __init__(self, ui: GUI, redirect=None):
         super().__init__()
@@ -92,7 +93,7 @@ class DiscordLogin(QWebEngineView):
 
         # Discord OAuth2 settings
         client_id = '1353490529660309524'
-        redirect_uri = urllib.parse.quote('http://localhost:5000/callback', safe='')
+        redirect_uri = urllib.parse.quote(REDIRECT_URI, safe='')
         scope = 'identify+guilds+guilds.members.read'
         response_type = 'token'
 
