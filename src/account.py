@@ -25,7 +25,6 @@ def derive_key(hardware_id, salt=b"c06005db-9d98-4bad-afe1-9bd0c8a2db7f", iterat
     )
     return base64.urlsafe_b64encode(kdf.derive(hardware_id))
 
-
 def del_token():
     with open(assets.TOKEN_FILE, "w") as f:
         f.write("")
@@ -100,14 +99,15 @@ def is_token_valid(access_token):
         print(f"Token is invalid. Status code: {response.status_code}")
         return False
 
-
 def check_login_status(gui, access_token):
     guilds = get_guilds(access_token=access_token)
     roles = get_subscribed("", access_token=access_token)
 
     if assets.GUILD_ID in guilds:
         print("found guild")
-        if (assets.PREMIUM_ID in roles and assets.UKPLUS_ID in roles) or (assets.OWNER_ID in roles):
+        valid = (assets.PREMIUM_ID in roles and assets.UKPLUS_ID in roles) or (assets.OWNER_ID in roles) or (assets.GIFTED_ID in roles)
+
+        if valid:
             gui.set_window(ui_interface.UltraKeyUI(gui))
         else:
             gui.set_window(ui_interface.PurchaseWindow(gui))
