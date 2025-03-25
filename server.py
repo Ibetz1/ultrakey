@@ -1,7 +1,5 @@
 from flask import Flask, request, redirect
 import requests
-import webbrowser
-import urllib.parse
 import os
 
 app = Flask(__name__)
@@ -11,7 +9,6 @@ SCOPE = "identify+guilds"
 TOKEN_URL = "https://discord.com/api/oauth2/token"
 CLIENT_ID = os.getenv("CLIENT_ID")
 CLIENT_SECRET = os.getenv("CLIENT_SECRET")
-
 
 @app.route('/')
 def index():

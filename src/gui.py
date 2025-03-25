@@ -175,8 +175,6 @@ class InputBox(NoFocusLineEdit):
             return True
 
         elif event.type() == QEvent.Type.MouseButtonPress:
-            print(source.click_counter)
-
             if source.click_counter > 0:
                 button = event.button()
                 mouse_buttons = {
@@ -209,25 +207,27 @@ class TextInput(QLineEdit):
         return self.attr.get(key, None)
 
 class Slider(QWidget):
-    value_changed = pyqtSignal(int)  # Signal emitted when the value changes
+    value_changed = pyqtSignal(int) 
 
-    def __init__(self, label_text="Slider", min_value=0, max_value=100, default_value=50, callback=None, parent=None):
+    def __init__(self, label_text=None, min_value=0, max_value=100, default_value=50, callback=None, parent=None):
         super().__init__(parent)
         layout = QHBoxLayout()
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(10)
 
-        self.label = QLabel(label_text)
+        if label_text != None:
+            self.label = QLabel(label_text)
         self.slider = QSlider(Qt.Orientation.Horizontal)
         self.slider.setMinimum(min_value)
         self.slider.setMaximum(max_value)
         self.slider.setValue(default_value)
-        self.value_label = QLabel(str(default_value))  # Show current slider value
+        self.value_label = QLabel(str(default_value))
         self.callback = callback
 
         self.slider.valueChanged.connect(self.update)
 
-        layout.addWidget(self.label)
+        if label_text != None:
+            layout.addWidget(self.label)
         layout.addWidget(self.slider)
         layout.addWidget(self.value_label)
         self.attr = {}
@@ -333,13 +333,34 @@ class Application(QApplication):
     def set_interface(self, ui: QWidget):
         self.main_window.setCentralWidget(ui)
 
+class BaseUI(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.layout: QVBoxLayout = QVBoxLayout()
+        self.setLayout(self.layout)
+
+    def on_load(self):
+        pass
+
+    def add_widget(self, widget):
+        self.layout.addWidget(widget)
+        return widget
+    
+    def cleanup(self):
+        print("cleanup")
+
 class GUI:
     def __init__(self, style_sheet=None):
         self.app = QApplication(sys.argv)
         self.main_window = QMainWindow()
         self.main_window.setWindowTitle("Ultra Key")
+        self.main_window.setObjectName("Window")
+        self.access_token = ""
 
-        self.window_cache = {}
+        self.pixmaps = assets.load_pix_maps()
+        self.icons = assets.load_icons()
+
+        self.window_cache: dict[str, QWidget] = {}
 
         if style_sheet:
             self.app.setStyleSheet(style_sheet)
@@ -348,14 +369,13 @@ class GUI:
         if callable(on_exit):
             self.app.aboutToQuit.connect(on_exit)
 
-    def cache_window(self, name, widget):
-        self.bind_on_exit(widget.cleanup)
-        self.window_cache[name] = widget
-
-    def set_window(self, name):
-        self.main_window.setCentralWidget(self.window_cache[name])
+    def set_window(self, widget: QWidget):
+        self.main_window.setCentralWidget(widget)
         self.main_window.adjustSize()
         QTimer.singleShot(0, self.center_window)
+        self.main_window.setMinimumSize(self.main_window.sizeHint())
+        if isinstance(widget, BaseUI):
+            widget.on_load()
 
     def center_window(self):
         screen = QGuiApplication.primaryScreen()
@@ -363,10 +383,6 @@ class GUI:
             screen_geometry = screen.availableGeometry()
             window_geometry = self.main_window.frameGeometry()
 
-            print(window_geometry.width())
-            print(window_geometry.height())
-
-            # Calculate the top-left point to move the window to
             x = screen_geometry.center().x() - window_geometry.width() // 2
             y = screen_geometry.center().y() - window_geometry.height() // 2
 
@@ -376,16 +392,3 @@ class GUI:
         self.main_window.show()
         sys.exit(self.app.exec())
 
-class BaseUI(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.layout = QVBoxLayout()
-        self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.setLayout(self.layout)
-
-    def add_widget(self, widget):
-        self.layout.addWidget(widget)
-        return widget
-    
-    def cleanup(self):
-        pass

@@ -5,45 +5,26 @@ from functools import partial
 from utils import *
 import shutil
 from emulator import Emulator
+from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineCore import QWebEngineSettings
+from PyQt6.QtCore import QUrl
+from urllib.parse import urlparse, parse_qs
+import urllib.parse
+import webbrowser
+import account
 
 CONTAINER_EXTENSION = ".uk"
 CONFIG_EXTENSION = ".ukc"
 SCRIPT_EXTENSION = ".lua"
 
-class ScriptContainer(Container):
-    def __init__(self, gui, parent=None):
-        super().__init__("Scripts", parent=parent)
-        self.gui = gui
-        self.init_ui()
+class LogoutButton(Button):
+    def __init__(self, gui):
+        super().__init__("Logout", callback=self.logout)
+        self.setObjectName("Logout")
+        self.gui=gui
 
-    def init_ui(self):
-        input_actions: Row = self.add_widget(Row())
-
-        self.dropdown: Dropdown = input_actions.add_widget(Dropdown([], base_items=["None"], callback=self.bind_script))
-        self.new_button = input_actions.add_widget(Button("New", callback=self.new_script))
-        self.rename_button = input_actions.add_widget(Button("Rename", callback=self.rename_script))
-        self.edit_button = input_actions.add_widget(Button("Edit", callback=self.open_script))
-        self.new_button.setMaximumWidth(65)
-        self.rename_button.setMaximumWidth(65)
-        self.edit_button.setMaximumWidth(65)
-
-    def new_script(self, widget: Button):
-        name, ok = QInputDialog.getText(None, "Enter Name", "Enter New Script Name")
-        if ok and name.strip():
-            print("new script", name)
-            return
-
-    def rename_script(self, widget: Button):
-        name, ok = QInputDialog.getText(None, "Enter Name", "Enter New Script Name")
-        if ok and name.strip():
-            print("rename script", name)
-            return
-
-    def open_script(self, widget: Button):
-        print("open script")
-
-    def bind_script(self, widget: Dropdown):
-        print("bind script")
+    def logout(self, widget: Button):
+        account.logout_user(self.gui)
 
 class ConfigContainer(Container):
     def __init__(self, gui, parent=None):
@@ -58,22 +39,25 @@ class ConfigContainer(Container):
 
     def init_ui(self):
         input_actions: Row = self.add_widget(Row())
+        self.logout = input_actions.add_widget(LogoutButton(self.gui.gui))
+
         self.dropdown = input_actions.add_widget(Dropdown([], callback=self.select_config))
         self.new_button = input_actions.add_widget(Button("New", callback=self.new_config))
         self.import_button = input_actions.add_widget(Button("Import", callback=self.import_config))
-        # self.rename_button = input_actions.add_widget(Button("Rename", callback=self.rename_config))
         self.save_button = input_actions.add_widget(Button("Save", callback=self.save_config))
         self.remove_button = input_actions.add_widget(Button("Delete", callback=self.delete_config))
         self.new_button.setMaximumWidth(65)
-        # self.rename_button.setMaximumWidth(65)
         self.save_button.setMaximumWidth(65)
         self.remove_button.setMaximumWidth(65)
         self.import_button.setMaximumWidth(65)
+        self.logout.setMaximumWidth(65)
 
         buttons: Row = self.add_widget(Row())
         self.start_button = buttons.add_widget(Button("Start Emulator", callback=self.start_config))
         self.dropdown.addItems(get_containers(self.config_folder, CONTAINER_EXTENSION))
         self.check_button_status()
+
+
 
     def rename_config(self, widget: Button):
         name, ok = QInputDialog.getText(None, "Enter Name", "Enter New Config Name")
@@ -127,13 +111,13 @@ class ConfigContainer(Container):
             if (self.config_file + CONFIG_EXTENSION in configurations):
                 conf_path = os.path.abspath(path + "/" + self.config_file + CONFIG_EXTENSION)
 
-                # try:
-                with open(conf_path, "rb") as f:
-                    byte_data = f.read()
-                    self.gui.bindings.import_bytes(byte_data)
-                    self.gui.map_bindings_ui()
-                # except:
-                    # print("failed to open file in select config")
+                try:
+                    with open(conf_path, "rb") as f:
+                        byte_data = f.read()
+                        self.gui.bindings.import_bytes(byte_data)
+                        self.gui.map_bindings_ui()
+                except:
+                    print("failed to open file in select config")
         else:
             self.select_config = None
 
@@ -230,25 +214,27 @@ class ConfigContainer(Container):
         else:
             self.start_button.setText("Start Emulator")
 
-    def check_button_status(self):
+    def check_button_status(self, save_en = True):
         print("curcfg", self.selected_config)
 
         if self.selected_config == None:
             self.dropdown.setDisabled(True)
             self.remove_button.setDisabled(True)
-            # self.rename_button.setDisabled(True)
             self.save_button.setDisabled(True)
             self.start_button.setDisabled(True)
             self.dropdown.setDisabled(True)
         else:
-            self.dropdown.setDisabled(False)
-            self.new_button.setDisabled(False)
-            # self.rename_button.setDisabled(False)
-            self.remove_button.setDisabled(False)
-            self.import_button.setDisabled(False)
-            self.save_button.setDisabled(False)
-            self.start_button.setDisabled(False)
-            self.dropdown.setDisabled(False)
+            if save_en:
+                self.dropdown.setDisabled(False)
+                self.new_button.setDisabled(False)
+                self.remove_button.setDisabled(False)
+                self.import_button.setDisabled(False)
+                self.save_button.setDisabled(False)
+                self.start_button.setDisabled(False)
+                self.dropdown.setDisabled(False)
+            else:
+                self.save_button.setDisabled(True)
+                self.start_button.setDisabled(True)
 
 class ButtonContainer(Container):
     def __init__(self, gui, parent=None):
@@ -326,7 +312,7 @@ class ButtonContainer(Container):
 
         self.gui.bindings.button_bindings = {}
 
-        _, unflagged = button_input_validator(self)
+        flagged, unflagged = button_input_validator(self)
 
         for item in unflagged:
             binding = QT_TO_VIRTUAL_KEY_MAP.get(item.text(), None)
@@ -334,6 +320,9 @@ class ButtonContainer(Container):
 
             if button_code != None:
                 self.gui.bindings.button_bindings[binding] = button_code.value
+
+        save_en = len(flagged) < 1
+        self.gui.config_container.check_button_status(save_en=save_en)
 
 class StickContainer(Container):
     def __init__(self, gui, parent=None):
@@ -343,8 +332,9 @@ class StickContainer(Container):
 
     def init_ui(self):
         slider_row = self.add_widget(Row())
+        slider_row.add_widget(QLabel("Sensitivity"))
         self.sense_slider = slider_row.add_widget(
-            Slider("Stick Sensitivity", callback=self.mouse_sensitivity_changed)
+            Slider(callback=self.mouse_sensitivity_changed)
         )
         slider_row.add_widget(QLabel("Threshold"))
         self.threshold_mode = slider_row.add_widget(Dropdown(["OFF", "AUTO"], callback=self.mouse_thres_changed))
@@ -400,7 +390,7 @@ class StickContainer(Container):
         self.gui.bindings.left_analog_bindings = {}
         self.gui.bindings.right_analog_bindings = {}
 
-        _, unflagged = button_input_validator(self)
+        flagged, unflagged = button_input_validator(self)
 
         for item in unflagged:
             binding = QT_TO_VIRTUAL_KEY_MAP.get(item.text(), None)
@@ -410,6 +400,9 @@ class StickContainer(Container):
             if binding != None and table != None and direction != None and hasattr(self.gui.bindings, table):
                 data = getattr(self.gui.bindings, table)
                 data[binding] = direction
+
+        save_en = len(flagged) < 1
+        self.gui.config_container.check_button_status(save_en=save_en)
 
     def stick_state_changed(self, widget: Dropdown):
         binding = widget.get_attr("BINDING")
@@ -466,12 +459,15 @@ class TriggerContainer(Container):
         self.gui.bindings.lt_binding = 0
         self.gui.bindings.rt_binding = 0
 
-        _, unflagged = button_input_validator(self)
+        flagged, unflagged = button_input_validator(self)
 
         for item in unflagged:
             binding = QT_TO_VIRTUAL_KEY_MAP.get(item.text(), None)
             trigger = item.get_attr("BINDING")
             setattr(self.gui.bindings, trigger, binding)
+
+        save_en = len(flagged) < 1
+        self.gui.config_container.check_button_status(save_en=save_en)
 
 class ToggleContainer(Container):
     def __init__(self, gui, parent=None):
@@ -495,7 +491,7 @@ class ToggleContainer(Container):
 
         self.gui.bindings.toggle_bindings = {}
 
-        _, unflagged = button_input_validator(self)
+        flagged, unflagged = button_input_validator(self)
 
         for item in unflagged:
             binding = QT_TO_VIRTUAL_KEY_MAP.get(item.text(), None)
@@ -504,14 +500,18 @@ class ToggleContainer(Container):
             if button_code < 3:
                 self.gui.bindings.toggle_bindings[binding] = button_code
 
+        save_en = len(flagged) < 1
+        self.gui.config_container.check_button_status(save_en=save_en)
+
 class FlagBindingContainer(Container):
     def __init__(self, gui, parent=None):
-        super().__init__(title="Mapped Bindings", parent=parent)
+        super().__init__(title="Special", parent=parent)
         self.gui: UltraKeyUI = gui
         self.init_ui()
 
     def binding_changed(self, widget: InputBox):
-        _, unflagged = button_input_validator(self)
+        flagged, unflagged = button_input_validator(self)
+        save_en = len(flagged) < 1
 
         self.gui.bindings.flagged_bindings = {}
         for item in unflagged:
@@ -522,6 +522,8 @@ class FlagBindingContainer(Container):
                 if item.text() in QT_TO_VIRTUAL_KEY_MAP and isinstance(mapping, TextInput):
                     key_code = QT_TO_VIRTUAL_KEY_MAP[item.text()]
                     self.gui.bindings.flagged_bindings[key_code] = mapping.text()
+
+        self.gui.config_container.check_button_status(save_en=save_en)
 
     def init_ui(self):
         ROWS = 14
@@ -559,8 +561,8 @@ class UltraKeyUI(BaseUI):
         self.emulator: Emulator = Emulator()
         self.gui = ui
 
-        self.pixmaps = assets.load_pix_maps()
-        self.icons = assets.load_icons()
+        self.pixmaps = ui.pixmaps
+        self.icons = ui.icons
         self.gui.main_window.setWindowIcon(self.icons["icon"])
 
         self.load_ui()
@@ -571,13 +573,12 @@ class UltraKeyUI(BaseUI):
         self.emulator.terminate()
 
     def load_ui(self):
-        # self.script_container = ScriptContainer(self)
-        self.button_container = ButtonContainer(self)
-        self.stick_container = StickContainer(self)
-        self.trigger_container = TriggerContainer(self)
-        self.toggle_container = ToggleContainer(self)
-        self.flag_bindings = FlagBindingContainer(self)
-        self.config_container = ConfigContainer(self)
+        self.button_container: ButtonContainer = ButtonContainer(self)
+        self.stick_container: StickContainer = StickContainer(self)
+        self.trigger_container: TriggerContainer = TriggerContainer(self)
+        self.toggle_container: ToggleContainer = ToggleContainer(self)
+        self.flag_bindings: FlagBindingContainer = FlagBindingContainer(self)
+        self.config_container: ConfigContainer = ConfigContainer(self)
 
         self.controls_row = self.add_widget(Row(spacing=50))
         self.controls_row.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
@@ -588,10 +589,10 @@ class UltraKeyUI(BaseUI):
         image_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         image_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        self.icon_row = self.add_widget(Row())
-        self.icon_row.add_widget(image_label)
-        self.icon_row.add_widget(self.config_container)
+        # self.icon_row = self.add_widget(Row())
+        # self.icon_row.add_widget(image_label)
         
+        self.add_widget(self.config_container)
         self.main_row = self.add_widget(Row())
         self.sticks_col: Column = self.main_row.add_widget(Column())
         self.sticks_col.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
@@ -693,4 +694,116 @@ class UltraKeyUI(BaseUI):
         else:
             threshold.setCurrentIndex(0)
 
-        # mousethres_slider: Slider = self.stick_container.slider_data.get("threshold", None)
+class DiscordLogin(QWebEngineView):
+    def __init__(self, ui: GUI, redirect=None):
+        super().__init__()
+        self.gui = ui
+        self.redirect = redirect
+        self.load_ui()
+
+    def load_ui(self):
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalStorageEnabled, True)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, True)
+        self.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
+        self.page().profile().setHttpUserAgent(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+            "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        )
+
+        # Discord OAuth2 settings
+        client_id = '1353490529660309524'
+        redirect_uri = urllib.parse.quote(assets.REDIRECT_URI, safe='')
+        scope = 'identify+guilds+guilds.members.read'
+        response_type = 'token'
+
+        auth_url = (
+            f"https://discord.com/oauth2/authorize"
+            f"?client_id={client_id}"
+            f"&redirect_uri={redirect_uri}"
+            f"&response_type={response_type}"
+            f"&scope={scope}"
+        )
+
+        self.urlChanged.connect(self.on_url_changed)
+        self.setUrl(QUrl(auth_url))
+
+    def on_url_changed(self, url: QUrl):
+        url = url.toString()
+
+        print("---------------", url)
+
+        if ("access_token" in url):
+            parsed_url = urlparse(url)
+            fragment = parsed_url.fragment
+            params = parse_qs(fragment)
+            access_token = params.get('access_token', [None])[0]
+            account.save_token(access_token)
+
+            if callable(self.redirect):
+                self.redirect(access_token)
+
+        if ("access_denied" in url):
+            self.gui.set_window(CredentialsWindow(self.gui))
+
+    def cleanup(self):
+        try:
+            self.urlChanged.disconnect()
+        except TypeError:
+            pass
+
+        self.page().deleteLater()
+        self.deleteLater()
+
+class CredentialsWindow(BaseUI):
+    def __init__(self, ui: GUI):
+        super().__init__()
+        self.gui = ui
+        self.layout.setSpacing(40)
+        self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        self.load_ui()
+
+    def load_ui(self):
+        # self.add_widget(QLabel("Sign in with discord"))
+        image_label = QLabel()
+        pixmap = self.gui.pixmaps["signin"].scaledToWidth(250, Qt.TransformationMode.SmoothTransformation)
+        image_label.setPixmap(pixmap)
+        image_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.add_widget(image_label)
+        self.swap_button = self.add_widget(Button("Sign In With Discord", callback=self.open_login))
+
+    def on_load(self):
+        self.gui.main_window.setMinimumSize(400, 400)
+        self.gui.main_window.adjustSize()
+        return super().on_load()
+
+    def open_login(self, widget: Button):
+        self.gui.set_window(DiscordLogin(self.gui, redirect=partial(account.check_login_status, self.gui)))
+        self.gui.main_window.setGeometry(QRect(0, 0, 800, 800))
+
+class PurchaseWindow(BaseUI):
+    def __init__(self, ui: GUI):
+        super().__init__()
+        self.gui = ui
+        self.layout.setSpacing(10)
+        self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.load_ui()
+
+    def on_load(self):
+        self.gui.main_window.setMinimumSize(400, 400)
+        self.gui.main_window.adjustSize()
+        return super().on_load()
+
+    def load_ui(self):
+        self.add_widget(QLabel("Please Purchase Ultrakey"))
+        self.swap_button = self.add_widget(Button("Purchase", callback=self.open_purchase))
+        self.refresh_button = self.add_widget(Button("Refresh", callback=self.refresh))
+        self.logout_button = self.add_widget(LogoutButton(self.gui))
+
+    def open_purchase(self, widget: Button):
+        webbrowser.open("https://discord.gg/4v9Pq6x23d")
+
+    def refresh(self, widget: Button):
+        account.login_user(self.gui)

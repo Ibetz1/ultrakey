@@ -1,6 +1,13 @@
 from PyQt6.QtGui import QIcon, QPixmap
 import os
 
+REDIRECT_URI = "https://ultrakey.onrender.com/callback"
+UKPLUS_ID = "1353625283286007839"
+PREMIUM_ID = "1353625280111181856"
+OWNER_ID = "1353186170724683924"
+GUILD_ID = "1353186170711965836"
+TOKEN_FILE = "access_token.json"
+
 ASSETS_DIR = "./assets/"
 
 asset_files = {
@@ -41,9 +48,22 @@ asset_files = {
     "bind.png": "bind",
     "keyboard.png": "keyboard",
     "icon.ico": "icon",
+    "uksignin.png": "signin",
 }
 
 main_theme = """
+    #Window {
+        background-color: #080808;
+    }
+
+    #Title { 
+        font-size: 18px; 
+    }
+
+    QLabel {
+        font-size: 14px;
+    }
+
     QComboBox {
         background-color: transparent;  /* Blue background */
         color: white;
@@ -77,35 +97,58 @@ main_theme = """
     }
 
     QGroupBox {
-        border: 1.5px solid #303030;
+        background-color: #0D0D0D;
+        border: 1.5px solid transparent;
         margin-top: 20px; /* Pushes the title down */
-        border-radius: 10px;
+        border-radius: 15px;
+        padding: 30px 11px 11px 11px; /* Top padding for title inside the box */
+        font-size: 16px;
     }
 
     /* Title style */
-    QGroupBox:title {
-        subcontrol-origin: margin;
-        subcontrol-position: top left;
-        padding: 11px;
+        QGroupBox:title {
+        subcontrol-origin: padding;
+        subcontrol-position: top center;
+        padding-top: 8px;
+        color: white;
+        font-weight: bold;
+        background: transparent; /* optional: no background behind title */
+    }
+
+    #Logout {
+        background-color: #F15B22;
+        color: black;
+        border: 1.5px solid transparent;
+        border-radius: 14px;
+        font-weight: bold;
+        padding: 5px 5px;
+        font-size: 13px;
+    }
+
+    #Logout:hover {
+        color: white;
+        background-color: #991717;
     }
 
     QPushButton {
-        background-color: transparent;
-        color: white;
-        border: 1.5px solid #757575;
+        background-color: #38C6F3;
+        color: black;
+        border: 1.5px solid transparent;
         border-radius: 14px;
+        font-weight: bold;
         padding: 5px 5px;
+        font-size: 13px;
     }
 
     QPushButton:hover {
-        background-color: #252525;
-        border: 1.5px solid #34C6F4;
+        color: white;
+        background-color: #1E6A82;
     }
 
     QPushButton:disabled {
         color: #303030;
-        background-color: #0B0B0B;
-        border: 1.5px solid #F15B22;
+        background-color: #F15B22;
+        border: 1.5px solid transparent;
     }
 
     QLineEdit {
@@ -152,65 +195,10 @@ main_theme = """
     }
 
     QSlider::sub-page:horizontal {
-        background-color: #34C6F4;       /* Blue progress bar */
+        background-color: #34C6F4;
     }
 
 
-"""
-
-input_theme = """
-QLineEdit {
-    background-color: #ecf0f1;  /* Light gray */
-    color: #2c3e50;
-    border: 2px solid #3498db;
-    border-radius: 8px;
-    padding: 5px;
-}
-
-QLineEdit:hover {
-    border: 2px solid #2980b9;  /* Darker blue on hover */
-}
-
-QLineEdit:focus {
-    border: 2px solid #e67e22;  /* Orange border when focused */
-    background-color: white;
-}
-
-QLineEdit:disabled {
-    background-color: #bdc3c7;
-    color: #7f8c8d;
-    border: 2px solid #95a5a6;
-}
-
-QLineEdit:read-only {
-    background-color: #f7f7f7;
-    color: #7f8c8d;
-    border: 2px dashed #bdc3c7;
-}
-
-QLineEdit:selected {
-    background-color: #f39c12; /* Orange highlight */
-    color: black;
-}
-
-/* Placeholder text */
-QLineEdit::placeholder {
-    color: #95a5a6;
-    font-style: italic;
-}
-
-/* Clear button (X) */
-QLineEdit::clear-button {
-    image: url(clear_icon.png); /* Custom clear icon */
-    width: 14px;
-    height: 14px;
-}
-
-/* Selection highlight */
-QLineEdit::selection {
-    background-color: #e74c3c;
-    color: white;
-}
 """
 
 def load_icons():
