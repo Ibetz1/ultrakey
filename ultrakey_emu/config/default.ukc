@@ -1,0 +1,17 @@
+{
+  "ls_binding": 99,
+  "lt_binding": 96,
+  "rs_binding": 99,
+  "rt_binding": 95,
+  "scripts": [
+    "./scripts/script1.lua"
+  ],
+  "sensitivity": 0.07999999821186066,
+  "tagged_bindings": {
+    "42": "SUPERGLIDE"
+  },
+  "threshold": false,
+  "toggle_bindings": {
+    "68": 0
+  }
+}

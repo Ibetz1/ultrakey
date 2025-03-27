@@ -1,0 +1,55 @@
+#ifndef _MAIN_HPP
+#define _MAIN_HPP
+
+#include <windows.h>
+#include <iostream>
+#include <math.h>
+#include <pthread.h>
+#include <vector>
+#include <unordered_map>
+#include <stdint.h>
+#include <sys/stat.h>
+
+#include "xinput.h"
+#include "vigem/Client.h"
+#include "interception/interception.h"
+#include "json/json.hpp"
+#include "lua.hpp"
+
+using json = nlohmann::json;
+
+#pragma comment(lib, "setupapi.lib")
+
+constexpr short S16_lim = 0x7FFE;
+    
+inline float fclampf(float val, float min, float max) {
+    return fmaxf(fminf(val, max), min);
+}
+
+#define LOGI(fmt, ...) do { printf("I: " fmt "\n", ##__VA_ARGS__); } while (0)
+#define LOGE(fmt, ...) do { printf("E: " fmt "\n", ##__VA_ARGS__); } while (0)
+#define THROW(fmt, ...) do { LOGE(__FILE__ ":%i " fmt, __LINE__, ##__VA_ARGS__); exit(1); } while (0)
+
+#include "enums.hpp"
+
+struct InputVector {
+    float dx, dy;
+};
+
+struct OutputVector {
+    short dx, dy;
+};
+
+struct ToggleBinding {
+    int mode;
+    VirtualKey binding;
+};
+
+#include "input_interface.hpp"
+#include "lua_bindings.hpp"
+#include "input_remapper.hpp"
+#include "gamepad.hpp"
+#include "emulator.hpp"
+#include "file.hpp"
+
+#endif
