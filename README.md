@@ -3,7 +3,6 @@
 ## TODO
 - forward args in runner to packed exe
 - add anti debugging (either dll or wrapper task)
-- add hwid to runner
 - add driver install to runner
 
 - reformat script paths

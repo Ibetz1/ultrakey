@@ -49,10 +49,6 @@ constexpr const char mdcr_table_dfipt[] = {
     0
 };
 
-// $packer_obf_output_name = packer.bin
-// $packer_obf_ui_name = ultrakey_ui.exe
-// $packer_obf_emu_name = ultrakey_emu.exe
-
 constexpr char mdcr_table_dfopt[] = {
     'u' ^ (char) 0x4A, 
     'l' ^ (char) 0x4A, 

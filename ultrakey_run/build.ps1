@@ -12,6 +12,6 @@ $src = Join-Path $dir "./src/*.cpp"
 $inc = Join-Path $dir 'inc'
 $out = Join-Path $outdir $name
 
-Invoke-Expression "g++ -std=c++20 -O2 -s $src -I$inc -o$out -liphlpapi -ladvapi32"
+Invoke-Expression "g++ -std=c++20 -O2 -s $src -I$inc -o$out -liphlpapi -ladvapi32 -lssl -lcrypto -lws2_32 -lgdi32"
 
 return $out

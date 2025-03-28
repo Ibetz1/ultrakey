@@ -113,18 +113,14 @@ void sign_executables(const char* out_path, const char* p1, const char* p2) {
     free(merged);
 }
 
-void run_executables(const char* in_path, const char* target) {
-    size_t merged_len;
-    uint8_t* merged = import_binary(in_path, &merged_len);
-    
+void run_bytes(uint8_t* bytes, size_t size, const char* target) {
     uint16_t target_hash = u16_string_hash(get_basename(target));
 
     uint8_t* extracted_1;
     uint8_t* extracted_2;
     size_t extracted_len_1;
     size_t extracted_len_2;
-    uint32_t sig = extract_binaries(merged, &extracted_1, &extracted_2, &extracted_len_1, &extracted_len_2);
-    free(merged);
+    uint32_t sig = extract_binaries(bytes, &extracted_1, &extracted_2, &extracted_len_1, &extracted_len_2);
 
     uint16_t left_hash = (uint16_t) (sig >> 16) & 0xFFFF;
     uint16_t right_hash  = (uint16_t) (sig) & 0xFFFF;
@@ -158,49 +154,146 @@ void invalid_args() {
     THROW("invalid arguments");
 }
 
+#define BLOCK_SIZE 16384 // 16KB buffer
+
+void sha256_hwid_key(const char *hwid, uint8_t *key_out) {
+    SHA256((const uint8_t *)hwid, strlen(hwid), key_out);
+}
+
+uint8_t *encrypt_buffer_in_place(uint8_t *buffer, size_t *length, const char *hwid) {
+    if (!buffer || !length || *length == 0) return NULL;
+
+    uint8_t key[32], iv[16];
+    sha256_hwid_key(hwid, key);
+    RAND_bytes(iv, sizeof(iv));
+
+    // Prepare output buffer: IV + encrypted data (same length as input, plus IV)
+    size_t original_len = *length;
+    size_t max_out = 16 + original_len + 16; // 16 for IV + possible overhead
+    uint8_t *out_buf = (uint8_t *)realloc(buffer, max_out);
+    if (!out_buf) return NULL;
+
+    // Move original data forward to make room for IV at the start
+    memmove(out_buf + 16, out_buf, original_len);
+    memcpy(out_buf, iv, 16); // write IV at the beginning
+
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key, iv);
+
+    size_t buffer_offset = 16;
+    int chunk_len;
+    size_t total_encrypted = 0;
+
+    for (size_t i = 0; i < original_len; i += BLOCK_SIZE) {
+        size_t block = (i + BLOCK_SIZE <= original_len) ? BLOCK_SIZE : (original_len - i);
+        EVP_EncryptUpdate(ctx, out_buf + buffer_offset, &chunk_len, out_buf + 16 + i, block);
+        buffer_offset += chunk_len;
+        total_encrypted += chunk_len;
+    }
+
+    EVP_EncryptFinal_ex(ctx, out_buf + buffer_offset, &chunk_len);
+    buffer_offset += chunk_len;
+    total_encrypted += chunk_len;
+
+    EVP_CIPHER_CTX_free(ctx);
+
+    *length = 16 + total_encrypted;
+    return out_buf;
+}
+
+uint8_t *decrypt_buffer_in_place(uint8_t *buffer, size_t *length, const char *hwid) {
+    if (!buffer || !length || *length <= 16) return NULL;
+
+    uint8_t key[32], iv[16];
+    sha256_hwid_key(hwid, key);
+    memcpy(iv, buffer, 16);
+
+    size_t encrypted_len = *length - 16;
+
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key, iv);
+
+    uint8_t *out_buf = (uint8_t *)malloc(encrypted_len);
+    if (!out_buf) {
+        EVP_CIPHER_CTX_free(ctx);
+        return NULL;
+    }
+
+    int chunk_len;
+    size_t total = 0;
+
+    for (size_t i = 0; i < encrypted_len; i += BLOCK_SIZE) {
+        size_t block = (i + BLOCK_SIZE <= encrypted_len) ? BLOCK_SIZE : (encrypted_len - i);
+        EVP_DecryptUpdate(ctx, out_buf + i, &chunk_len, buffer + 16 + i, block);
+        total += chunk_len;
+    }
+
+    EVP_DecryptFinal_ex(ctx, out_buf + total, &chunk_len);
+    total += chunk_len;
+
+    EVP_CIPHER_CTX_free(ctx);
+    free(buffer);
+
+    *length = total;
+    return out_buf;
+}
+
 int main(int argc, char* argv[]) {
+    char packed_binary[sizeof(mdcr_table_dfipt)] = { 0 };
+    obf_decrypt(packed_binary, mdcr_table_dfipt, sizeof(mdcr_table_dfipt) - 1, 0xA5);
+
+    char ui_binary[sizeof(mdcr_table_dfopt)] = { 0 };
+    obf_decrypt(ui_binary, mdcr_table_dfopt, sizeof(mdcr_table_dfopt) - 1, 0x4A);
+
+    LOGI("ultrakey runner starting");
+
+    if (argc > 3 && strcmp(argv[1], STR("pack")) == 0) {
+        sign_executables(packed_binary, argv[2], argv[3]);
+        return 0;
+    }
+
+    LOGI("finding packer");
+
+    FILE* temp = fopen(packed_binary, "r");
+    if (temp == nullptr) {
+        THROW("cannot find packed binaries");
+    } else {
+        fclose(temp);
+    }
+
+    size_t out_len;
+    uint8_t* out_bin = import_binary(packed_binary, &out_len);
+
     char hwid[65] = { 0 };
     get_hardware_hash(hwid);
+    FILE* key_file = fopen(STR("liscense.key"), "rb");
+    
+    if (!key_file) {
+        key_file = fopen(STR("liscense.key"), "wb+");
+        if (!key_file) {
+            THROW("file system failed");
+        }
+        fwrite(STR("key"), 3, 1, key_file);
 
-    if (argc < 2) {
-        char decpr_ipt[sizeof(mdcr_table_dfipt)] = { 0 };
-        obf_decrypt(decpr_ipt, mdcr_table_dfipt, sizeof(mdcr_table_dfipt) - 1, 0xA5);
+        LOGI("Creating Liscense");
+        out_bin = encrypt_buffer_in_place(out_bin, &out_len, hwid);
 
-        char decpr_out[sizeof(mdcr_table_dfopt)] = { 0 };
-        obf_decrypt(decpr_out, mdcr_table_dfopt, sizeof(mdcr_table_dfopt) - 1, 0x4A);
-
-        run_executables(decpr_ipt, decpr_out);
+        LOGI("exporting liscense");
+        export_binary(packed_binary, out_bin, out_len);
     }
 
-    const char* command = argv[1];
+    fclose(key_file);
 
-    if (strcmp(command, "pack") == 0) {
-        if (argc < 5) {
-            invalid_args();
-        }
+    out_bin = decrypt_buffer_in_place(out_bin, &out_len, hwid);
+    LOGI("running executables");
 
-        const char* path_a = argv[2];
-        const char* path_b = argv[3];
-        const char* out = argv[4];
-
-
-        sign_executables(out, path_a, path_b);
-
+    if (argc == 2) {
+        run_bytes(out_bin, out_len, argv[1]);
+        free(out_bin);
         return 0;
     }
 
-    if (strcmp(command, "run") == 0) {
-        if (argc < 4) {
-            invalid_args();
-        }
-
-        const char* in = argv[2];
-        const char* target = argv[3];
-
-        run_executables(in, target);
-
-        return 0;
-    }
-
-    invalid_args();
+    LOGI("passed EMU");
+    run_bytes(out_bin, out_len, ui_binary);
+    return 0;
 }

@@ -10,6 +10,11 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#include <openssl/aes.h>
+#include <openssl/evp.h>
+#include <openssl/sha.h>
+#include <openssl/rand.h>
+
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "advapi32.lib")
 
