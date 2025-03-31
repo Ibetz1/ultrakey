@@ -115,13 +115,11 @@ def check_login_status(gui, access_token):
         gui.set_window(ui_interface.PurchaseWindow(gui))
 
 def login_user(gui):
-
-
     if is_token_valid(gui.access_token):
         check_login_status(gui, gui.access_token)
     else:
         gui.set_window(ui_interface.CredentialsWindow(gui))
-
+        
 def logout_user(gui):
     del_token()
     gui.access_token = ""

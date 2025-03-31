@@ -3,6 +3,7 @@
 
 struct InputInterface {
     std::unordered_map<VirtualKey, std::string> tagged_bindings;
+    std::unordered_map<std::string, int> value_bindings; 
     InterceptionContext context = 0;
     InterceptionDevice device = 0;
     InterceptionStroke stroke = { 0 };
@@ -44,7 +45,13 @@ struct InputInterface {
 
     bool flag_active(std::string) const;
 
+    int get_value(std::string) const;
+
     void bind_flag(VirtualKey key, std::string binding);
+    
+    void bind_value(std::string key, int value);
+
+    void offset_analog(float dx, float dy);
 };
 
 #endif

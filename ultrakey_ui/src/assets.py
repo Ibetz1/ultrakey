@@ -8,9 +8,15 @@ PREMIUM_ID = "1353625280111181856"
 OWNER_ID = "1353186170724683924"
 GIFTED_ID = "1354086033108762624"
 GUILD_ID = "1353186170711965836"
-TOKEN_FILE = "license.key"
+TOKEN_FILE = "login.key"
 
 ASSETS_DIR = "./assets/"
+
+LUA_TEMPLATE = """
+function main()
+    -- this repeats forever :)
+end
+"""
 
 asset_files = {
     "a-filled.png": "a",
@@ -51,6 +57,7 @@ asset_files = {
     "keyboard.png": "keyboard",
     "icon.ico": "icon",
     "uksignin.png": "signin",
+    "value.png": "value"
 }
 
 main_theme = """
@@ -62,15 +69,51 @@ main_theme = """
         font-size: 18px; 
     }
 
+    #Flagged {
+        background-color: #F15B22;
+        color: black;
+        border: 1.5px solid transparent;
+        border-radius: 14px;
+        font-weight: bold;
+        padding: 5px 5px;
+        font-size: 13px;
+    }
+
+    #Flagged:hover {
+        color: white;
+        background-color: #991717;
+    }
+
+    QTabWidget::pane {
+        background: transparent; /* Background of the tab widget */
+        border: 1px solid transparent;
+    }
+    QTabBar::tab {
+        background: #171717;
+        color: white;
+        padding: 5px;
+        font-size: 14px; 
+        border-radius: 5px;
+        margin-right: 10px;
+    }
+
+    QScrollArea > QWidget > QWidget { 
+        background: #0D0D0D;
+    }
+    
+    QTabBar::tab:selected {
+        background: #252525; /* Background of selected tab */
+    }
+
     QLabel {
         font-size: 14px;
     }
 
     QComboBox {
-        background-color: transparent;  /* Blue background */
+        background-color: transparent;
         color: white;
         border: 1px solid transparent;
-        border-bottom: 1.5px solid #757575; /* Underline effect at the bottom */
+        border-bottom: 1.5px solid #757575;
         padding: 5px;
     }
 
@@ -107,29 +150,13 @@ main_theme = """
         font-size: 16px;
     }
 
-    /* Title style */
-        QGroupBox:title {
+    QGroupBox:title {
         subcontrol-origin: padding;
         subcontrol-position: top center;
         padding-top: 8px;
         color: white;
         font-weight: bold;
         background: transparent; /* optional: no background behind title */
-    }
-
-    #Logout {
-        background-color: #F15B22;
-        color: black;
-        border: 1.5px solid transparent;
-        border-radius: 14px;
-        font-weight: bold;
-        padding: 5px 5px;
-        font-size: 13px;
-    }
-
-    #Logout:hover {
-        color: white;
-        background-color: #991717;
     }
 
     QPushButton {

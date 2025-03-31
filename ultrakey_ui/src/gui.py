@@ -25,26 +25,55 @@ class Button(QPushButton):
 class FolderSelector(QWidget):
     def __init__(self):
         super().__init__()
-        self.initUI()
+        self.init_ui()
 
-    def initUI(self):
+    def init_ui(self):
         self.setWindowTitle('Select Folder')
         self.setGeometry(100, 100, 300, 100)
         layout = QVBoxLayout()
 
         self.button = QPushButton('Select Folder', self)
-        self.button.clicked.connect(self.showDialog)
+        self.button.clicked.connect(self.show_dialog)
         layout.addWidget(self.button)
 
         self.setLayout(layout)
 
-    def showDialog(self):
+    def show_dialog(self):
         folder_path = QFileDialog.getExistingDirectory(self, 'Select Folder')
         if folder_path:
             return folder_path
         else:
             print('No folder selected.')
             return None
+
+class FileSelector(QWidget):
+    def __init__(self, extension='*.txt'):
+        super().__init__()
+        self.extension = extension
+        self.init_ui()
+
+    def init_ui(self):
+        self.setWindowTitle('Select File')
+        self.setGeometry(100, 100, 300, 100)
+        layout = QVBoxLayout()
+
+        self.button = QPushButton(f'Select {self.extension} File', self)
+        self.button.clicked.connect(self.show_dialog)
+        layout.addWidget(self.button)
+
+        self.setLayout(layout)
+
+    def show_dialog(self):
+        dialog = QFileDialog(self)
+        dialog.setFileMode(QFileDialog.FileMode.ExistingFile)
+        dialog.setNameFilter(f"Files ({self.extension})")
+        if dialog.exec():
+            file_paths = dialog.selectedFiles()
+            if file_paths:
+                print(f"Selected file: {file_paths[0]}")
+                return file_paths[0]
+        print('No file selected.')
+        return None
 
 class Dropdown(QComboBox):
     def __init__(self, options, callback=None, parent=None, attr={}, base_items=[]):
@@ -116,10 +145,10 @@ class InputBox(NoFocusLineEdit):
     def get_attr(self, key):
         return self.attr.get(key, None)
 
-    def toggle_disbled(self, disable=True):
+    def toggle_disabled(self, disable=True):
         """Completely disables/enables all input boxes, blocking all interactions."""
-        self.setDisabled(disable)  # Grays out the input box
-        self.setReadOnly(disable)  # Prevents text input
+        self.setDisabled(disable)
+        self.setReadOnly(disable)
 
     def eventFilter(self, source: NoFocusLineEdit, event):
         def change_value(text):
@@ -205,6 +234,11 @@ class TextInput(QLineEdit):
 
     def get_attr(self, key):
         return self.attr.get(key, None)
+
+    def toggle_disable(self, disable=True):
+        """Completely disables/enables all input boxes, blocking all interactions."""
+        # self.setDisabled(disable)  # Grays out the input box
+        self.setReadOnly(disable)  # Prevents text input
 
 class Slider(QWidget):
     value_changed = pyqtSignal(int) 
@@ -308,12 +342,44 @@ class Container(QGroupBox):
         self.title = title
 
         self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
     def add_widget(self, widget: QWidget):
         self.layout.addWidget(widget)
         self.grid_data.append(widget)
         return widget
+
+class ScrollableList(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.grid_data: QWidget = []
+
+        outer_layout = QVBoxLayout(self)
+
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+
+        self.content_widget = QWidget()
+        self.content_layout = QVBoxLayout(self.content_widget)
+        self.content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        self.scroll_area.setWidget(self.content_widget)
+        outer_layout.addWidget(self.scroll_area)
+
+    def add_item(self, widget):
+        self.content_layout.addWidget(widget)
+        self.grid_data.append(widget)
+        return widget
+
+    def clear(self):
+        while self.content_layout.count():
+            item = self.content_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.setParent(None)
+
+        self.grid_data = []
 
 class Application(QApplication):
     def __init__(self):

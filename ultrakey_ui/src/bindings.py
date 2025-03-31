@@ -220,6 +220,7 @@ class InputRemapper:
         self.button_bindings: dict = {}
         self.toggle_bindings: dict = {}
         self.flagged_bindings: dict = {}
+        self.value_bindings: dict = {}
         self.scripts: list = []
         self.lt_binding: int = 0
         self.rt_binding: int = 0
@@ -227,19 +228,6 @@ class InputRemapper:
         self.rs_binding: int = VirtualKey.KEY_MOUSE.value
         self.threshold: bool = False
         self.sensitivity: float = 0.05
-
-    def print_bindings(self):
-        print("Left Analog Bindings:", self.left_analog_bindings)
-        print("Left Analog Bindings:", self.right_analog_bindings)
-        print("Button Bindings:", self.button_bindings)
-        print("Toggle Bindings:", self.toggle_bindings)
-        print("Scripts", self.scripts)
-        print(f"LT Binding: {self.lt_binding}")
-        print(f"RT Binding: {self.rt_binding}")
-        print(f"LS Binding: {self.ls_binding}")
-        print(f"RS Binding: {self.rs_binding}")
-        print(f"Threshold: {self.threshold}")
-        print(f"Sensitivity: {self.sensitivity}")
 
     def export_bytes(self):
         data = {
@@ -254,7 +242,8 @@ class InputRemapper:
             "rs_binding": self.rs_binding,
             "threshold": self.threshold,
             "sensitivity": self.sensitivity,
-            "tagged_bindings": self.flagged_bindings
+            "tagged_bindings": self.flagged_bindings,
+            "value_bindings": self.value_bindings
         }
         
         json_data = json.dumps(data, indent=2)
@@ -264,12 +253,12 @@ class InputRemapper:
         try:
             data = json.loads(byte_data.decode("utf-8"))
 
-            # Restore values from JSON
             self.left_analog_bindings = data.get("left_analog_bindings", {})
             self.right_analog_bindings = data.get("right_analog_bindings", {})
             self.button_bindings = data.get("button_bindings", {})
             self.toggle_bindings = data.get("toggle_bindings", {})
             self.flagged_bindings = data.get("tagged_bindings", {})
+            self.value_bindings = data.get("value_bindings", {})
             self.scripts = data.get("scripts", [])
             self.lt_binding = data.get("lt_binding", 0)
             self.rt_binding = data.get("rt_binding", 0)

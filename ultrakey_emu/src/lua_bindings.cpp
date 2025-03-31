@@ -151,6 +151,16 @@ int LuaBindings::lua_binding_down(lua_State* L) {
     return 1;
 }
 
+int LuaBindings::lua_get_value(lua_State* L) {
+    size_t size;
+    const char* binding = luaL_checklstring(L, 1, &size);
+
+    int val = itf->get_value(binding);
+
+    lua_pushinteger(L, val);
+    return 1;
+}
+
 int LuaBindings::lua_binding_key(lua_State* L) {
     size_t size;
     const char* binding = luaL_checklstring(L, 1, &size);
@@ -165,11 +175,18 @@ int LuaBindings::lua_binding_key(lua_State* L) {
     return 0;
 }
 
-
 int LuaBindings::lua_press_key(lua_State* L) {
     int key_code = luaL_checkinteger(L, 1);
 
     itf->push_keystroke((VirtualKey) key_code, INTERCEPTION_KEY_DOWN);
+
+    return 0;
+}
+
+int LuaBindings::lua_press_button(lua_State* L) {
+    int key_code = luaL_checkinteger(L, 1);
+
+    remapper->press_button((ButtonCode) key_code);
 
     return 0;
 }
@@ -207,9 +224,27 @@ int LuaBindings::lua_block_key(lua_State* L) {
 
     bool state = lua_toboolean(L, 2);
 
-    // printf("bocked key\n");
-
     itf->block((VirtualKey) binding, state);
+
+    return 0;
+}
+
+int LuaBindings::lua_stick_offset(lua_State* L) {
+    float dx = luaL_checknumber(L, 1);
+    float dy = luaL_checknumber(L, 2);
+
+    remapper->analog_offset.dx = dx;
+    remapper->analog_offset.dy = dy;
+
+    return 0;
+}
+
+int LuaBindings::lua_aim_offset(lua_State* L) {
+    float dx = luaL_checknumber(L, 1);
+    float dy = luaL_checknumber(L, 2);
+
+    remapper->aim_offset.dx = dx;
+    remapper->aim_offset.dy = dy;
 
     return 0;
 }
@@ -218,22 +253,34 @@ void LuaBindings::push_enums(lua_State* L) {
     lua_newtable(L);
 
     for (auto& [name, binding] : key_ref_enum) {
-        lua_pushinteger(L, static_cast<int>(binding));  // Push the enum value
-        lua_setfield(L, -2, name.c_str());  // Set field (e.g., GameState.MENU = 0)
+        lua_pushinteger(L, (int) binding);
+        lua_setfield(L, -2, name.c_str());
     }
 
     lua_setglobal(L, "Key");
+    lua_newtable(L);
+
+    for (auto& [name, binding] : pad_ref_enum) {
+        lua_pushinteger(L, (int) binding);
+        lua_setfield(L, -2, name.c_str());
+    }
+
+    lua_setglobal(L, "Button");
 }
 
 void LuaBindings::register_functions(lua_State* L) {
     lua_register(L, "KeyDown", lua_key_down);
     lua_register(L, "PressKey", lua_press_key);
+    lua_register(L, "PressButton", lua_press_button);
     lua_register(L, "BlockKey", lua_block_key);
     lua_register(L, "ReleaseKey", lua_release_key);
     lua_register(L, "MoveCursor", lua_move_cursor);
     lua_register(L, "Wait", lua_wait);
     lua_register(L, "Event", lua_binding_down);
+    lua_register(L, "Value", lua_get_value);
     lua_register(L, "EventBinding", lua_binding_key);
+    lua_register(L, "MoveLStick", lua_stick_offset);
+    lua_register(L, "MoveRStick", lua_aim_offset);
 }
 
 void LuaBindings::bind_input_interface(InputInterface* input_itf) {
@@ -241,11 +288,17 @@ void LuaBindings::bind_input_interface(InputInterface* input_itf) {
     LOGI("LUA: bound input interface");
 }
 
+void LuaBindings::bind_remapper(InputRemapper* itf) {
+    remapper = itf;
+    LOGI("LUA: bound remapper interface");
+}
+
 InputInterface* LuaBindings::itf = nullptr;
+InputRemapper* LuaBindings::remapper = nullptr;
 
 LuaScript::LuaScript(const char* file) {
     L = luaL_newstate();
-    luaL_openlibs(L);
+   luaL_openlibs(L);
 
     LuaBindings::register_functions(L);
     LuaBindings::push_enums(L);

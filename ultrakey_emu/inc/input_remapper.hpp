@@ -10,9 +10,15 @@ struct InputRemapper {
     std::unordered_map<VirtualKey, ToggleMode> toggle_bindings;
     std::vector<std::string> script_paths;
     std::vector<LuaEnvironment*> scripts;
+    int internal_clock = 0;
+
+    InputVector analog_offset = { 0 };
+    InputVector aim_offset = { 0 };
     OutputVector l_n_dxy = { 0 };
     OutputVector r_n_dxy = { 0 };
+
     OutputVector m_b_dxy = { 0 };
+    OutputVector mouse_converstion = { 0 };
     InputVector m_bi_dxy = { 0 };
 
     // switch data (toggles between 0 and 255)
@@ -62,6 +68,9 @@ struct InputRemapper {
     
     // binds rs to either [VKEY_None, VMOUSE or VKEYBOARD]
     void bind_rs(VirtualKey binding);
+
+    // presses a gamepad button
+    void press_button(ButtonCode button);
 
     /*
         trigger getters

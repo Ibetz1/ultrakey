@@ -1,6 +1,66 @@
 #include "main.hpp"
 
-bool runPEFromTempBytes(const uint8_t* exeData, size_t exeSize) {
+#define CMDLINE_BUFFER_SIZE 2048
+
+// Returns pointer to static buffer or NULL if not enough args or overflow
+char* build_command_line_from_args(int argc, char* argv[], int startIndex) {
+    static char cmdline[CMDLINE_BUFFER_SIZE];
+    size_t offset = 0;
+
+    if (argc <= startIndex) {
+        return nullptr;
+    }
+
+    // Add argv[0] if startIndex > 0
+    if (startIndex > 0 && argv[0]) {
+        const char* arg0 = argv[0];
+        int needsQuotes = (strchr(arg0, ' ') != NULL || strchr(arg0, '\t') != NULL);
+
+        if (needsQuotes && offset < CMDLINE_BUFFER_SIZE - 1) {
+            cmdline[offset++] = '"';
+        }
+
+        while (*arg0 && offset < CMDLINE_BUFFER_SIZE - 1) {
+            cmdline[offset++] = *arg0++;
+        }
+
+        if (needsQuotes && offset < CMDLINE_BUFFER_SIZE - 1) {
+            cmdline[offset++] = '"';
+        }
+
+        cmdline[offset++] = ' ';
+    }
+
+    for (int i = startIndex; i < argc; ++i) {
+        const char* arg = argv[i];
+
+        if (i > startIndex && offset < CMDLINE_BUFFER_SIZE - 1) {
+            cmdline[offset++] = ' ';
+        }
+
+        int needsQuotes = (strchr(arg, ' ') != NULL || strchr(arg, '\t') != NULL);
+        if (needsQuotes && offset < CMDLINE_BUFFER_SIZE - 1) {
+            cmdline[offset++] = '"';
+        }
+
+        while (*arg && offset < CMDLINE_BUFFER_SIZE - 1) {
+            cmdline[offset++] = *arg++;
+        }
+
+        if (needsQuotes && offset < CMDLINE_BUFFER_SIZE - 1) {
+            cmdline[offset++] = '"';
+        }
+    }
+
+    if (offset >= CMDLINE_BUFFER_SIZE - 1) {
+        return nullptr;
+    }
+
+    cmdline[offset] = '\0';
+    return cmdline;
+}
+
+bool runPEFromTempBytes(const uint8_t* exeData, size_t exeSize, char* args = nullptr) {
     TCHAR tempPath[MAX_PATH];
     GetTempPath(MAX_PATH, tempPath);
 
@@ -30,17 +90,20 @@ bool runPEFromTempBytes(const uint8_t* exeData, size_t exeSize) {
     FlushFileBuffers(hFile);
     CloseHandle(hFile);
 
+    char cwd[MAX_PATH];
+    GetCurrentDirectoryA(MAX_PATH, cwd);
+
     STARTUPINFO si = { sizeof(si) };
     PROCESS_INFORMATION pi;
     if (!CreateProcess(
-        tempFile,      
+        tempFile,
+        args,
         nullptr,
-        nullptr,       
-        nullptr,       
-        FALSE,         
+        nullptr,
+        FALSE,
         0,
         nullptr,
-        nullptr,       
+        cwd,
         &si,
         &pi
     )) {
@@ -55,7 +118,7 @@ bool runPEFromTempBytes(const uint8_t* exeData, size_t exeSize) {
         AssignProcessToJobObject(job, pi.hProcess);
     }
 
-    LOGI("process created");
+    LOGI("process created %i", pi.dwProcessId);
 
     WaitForSingleObject(pi.hProcess, INFINITE);
 
@@ -81,7 +144,11 @@ const char* get_basename(const char* path) {
     const char* slash2 = strrchr(path, '\\');
     const char* last_slash = slash1 > slash2 ? slash1 : slash2;
 
-    return last_slash ? last_slash + 1 : path;
+    const char* base_name = last_slash ? last_slash + 1 : path;
+
+    LOGI("got basename %s\n", base_name);
+
+    return base_name;
 }
 
 void sign_executables(const char* out_path, const char* p1, const char* p2) {
@@ -113,7 +180,7 @@ void sign_executables(const char* out_path, const char* p1, const char* p2) {
     free(merged);
 }
 
-void run_bytes(uint8_t* bytes, size_t size, const char* target) {
+void run_bytes(uint8_t* bytes, size_t size, const char* target, char* args = nullptr) {
     uint16_t target_hash = u16_string_hash(get_basename(target));
 
     uint8_t* extracted_1;
@@ -128,7 +195,7 @@ void run_bytes(uint8_t* bytes, size_t size, const char* target) {
     if (left_hash == target_hash) {
         free(extracted_2);
         
-        runPEFromTempBytes(extracted_1, extracted_len_1);
+        runPEFromTempBytes(extracted_1, extracted_len_1, args);
         printf("\n");
 
         free(extracted_1);
@@ -137,7 +204,7 @@ void run_bytes(uint8_t* bytes, size_t size, const char* target) {
 
     if (right_hash == target_hash) {
         free(extracted_1);
-        runPEFromTempBytes(extracted_2, extracted_len_2);
+        runPEFromTempBytes(extracted_2, extracted_len_2, args);
         printf("\n");
 
         free(extracted_2);
@@ -154,90 +221,6 @@ void invalid_args() {
     THROW("invalid arguments");
 }
 
-#define BLOCK_SIZE 16384 // 16KB buffer
-
-void sha256_hwid_key(const char *hwid, uint8_t *key_out) {
-    SHA256((const uint8_t *)hwid, strlen(hwid), key_out);
-}
-
-uint8_t *encrypt_buffer_in_place(uint8_t *buffer, size_t *length, const char *hwid) {
-    if (!buffer || !length || *length == 0) return NULL;
-
-    uint8_t key[32], iv[16];
-    sha256_hwid_key(hwid, key);
-    RAND_bytes(iv, sizeof(iv));
-
-    // Prepare output buffer: IV + encrypted data (same length as input, plus IV)
-    size_t original_len = *length;
-    size_t max_out = 16 + original_len + 16; // 16 for IV + possible overhead
-    uint8_t *out_buf = (uint8_t *)realloc(buffer, max_out);
-    if (!out_buf) return NULL;
-
-    // Move original data forward to make room for IV at the start
-    memmove(out_buf + 16, out_buf, original_len);
-    memcpy(out_buf, iv, 16); // write IV at the beginning
-
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key, iv);
-
-    size_t buffer_offset = 16;
-    int chunk_len;
-    size_t total_encrypted = 0;
-
-    for (size_t i = 0; i < original_len; i += BLOCK_SIZE) {
-        size_t block = (i + BLOCK_SIZE <= original_len) ? BLOCK_SIZE : (original_len - i);
-        EVP_EncryptUpdate(ctx, out_buf + buffer_offset, &chunk_len, out_buf + 16 + i, block);
-        buffer_offset += chunk_len;
-        total_encrypted += chunk_len;
-    }
-
-    EVP_EncryptFinal_ex(ctx, out_buf + buffer_offset, &chunk_len);
-    buffer_offset += chunk_len;
-    total_encrypted += chunk_len;
-
-    EVP_CIPHER_CTX_free(ctx);
-
-    *length = 16 + total_encrypted;
-    return out_buf;
-}
-
-uint8_t *decrypt_buffer_in_place(uint8_t *buffer, size_t *length, const char *hwid) {
-    if (!buffer || !length || *length <= 16) return NULL;
-
-    uint8_t key[32], iv[16];
-    sha256_hwid_key(hwid, key);
-    memcpy(iv, buffer, 16);
-
-    size_t encrypted_len = *length - 16;
-
-    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key, iv);
-
-    uint8_t *out_buf = (uint8_t *)malloc(encrypted_len);
-    if (!out_buf) {
-        EVP_CIPHER_CTX_free(ctx);
-        return NULL;
-    }
-
-    int chunk_len;
-    size_t total = 0;
-
-    for (size_t i = 0; i < encrypted_len; i += BLOCK_SIZE) {
-        size_t block = (i + BLOCK_SIZE <= encrypted_len) ? BLOCK_SIZE : (encrypted_len - i);
-        EVP_DecryptUpdate(ctx, out_buf + i, &chunk_len, buffer + 16 + i, block);
-        total += chunk_len;
-    }
-
-    EVP_DecryptFinal_ex(ctx, out_buf + total, &chunk_len);
-    total += chunk_len;
-
-    EVP_CIPHER_CTX_free(ctx);
-    free(buffer);
-
-    *length = total;
-    return out_buf;
-}
-
 int main(int argc, char* argv[]) {
     char packed_binary[sizeof(mdcr_table_dfipt)] = { 0 };
     obf_decrypt(packed_binary, mdcr_table_dfipt, sizeof(mdcr_table_dfipt) - 1, 0xA5);
@@ -248,6 +231,10 @@ int main(int argc, char* argv[]) {
     LOGI("ultrakey runner starting");
 
     if (argc > 3 && strcmp(argv[1], STR("pack")) == 0) {
+        if (remove(STR("license.key")) == 0) {
+            LOGI("removed keyfile");
+        }
+
         sign_executables(packed_binary, argv[2], argv[3]);
         return 0;
     }
@@ -266,19 +253,19 @@ int main(int argc, char* argv[]) {
 
     char hwid[65] = { 0 };
     get_hardware_hash(hwid);
-    FILE* key_file = fopen(STR("liscense.key"), "rb");
+    FILE* key_file = fopen(STR("license.key"), "rb");
     
     if (!key_file) {
-        key_file = fopen(STR("liscense.key"), "wb+");
+        key_file = fopen(STR("license.key"), "wb+");
         if (!key_file) {
             THROW("file system failed");
         }
         fwrite(STR("key"), 3, 1, key_file);
 
-        LOGI("Creating Liscense");
+        LOGI("Creating license");
         out_bin = encrypt_buffer_in_place(out_bin, &out_len, hwid);
 
-        LOGI("exporting liscense");
+        LOGI("exporting license");
         export_binary(packed_binary, out_bin, out_len);
     }
 
@@ -286,14 +273,15 @@ int main(int argc, char* argv[]) {
 
     out_bin = decrypt_buffer_in_place(out_bin, &out_len, hwid);
     LOGI("running executables");
-
-    if (argc == 2) {
-        run_bytes(out_bin, out_len, argv[1]);
+    
+    if (argc >= 2) {
+        char* args = build_command_line_from_args(argc, argv, 2);
+        run_bytes(out_bin, out_len, argv[1], args);
         free(out_bin);
         return 0;
     }
 
-    LOGI("passed EMU");
-    run_bytes(out_bin, out_len, ui_binary);
+    char* args = build_command_line_from_args(argc, argv, 1);
+    run_bytes(out_bin, out_len, ui_binary, args);
     return 0;
 }

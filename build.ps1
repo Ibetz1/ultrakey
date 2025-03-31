@@ -27,16 +27,11 @@ Copy-Item -Path "$drivers" -Destination $out -Recurse
 Copy-Item -Path "$lib\*" -Destination $out -Recurse
 
 $runner = Invoke-Expression ".\ultrakey_run\build.ps1 $out"
-$emu_path = Invoke-Expression ".\ultrakey_emu\build.ps1  $packer_obf_emu_name"
+$emu_path = Invoke-Expression ".\ultrakey_emu\build.ps1 $packer_obf_emu_name"
+$ui_path = Invoke-Expression ".\ultrakey_ui\build.ps1 $packer_obf_ui_name"
 
-Write-Host "finished compiling, starting packing sequence:"
+Write-Host "finished compiling, starting packing sequence: $runner $emu_path $ui_path" -ForegroundColor Green
 
-$p2 = Join-Path $dir "server.py"
-
-$packed_out = Join-Path $out $packer_obf_output_name
-
-$runner
-Invoke-Expression "$runner pack $emu_path $p2 $packed_out"
-
-# TODO: build emu and ui and pack them with the runner
-# move the packed binary into bin
+Push-Location "$out"
+Invoke-Expression "$runner pack $emu_path $ui_path"
+Pop-Location

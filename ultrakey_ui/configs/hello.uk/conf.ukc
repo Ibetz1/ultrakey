@@ -1,0 +1,34 @@
+{
+  "left_analog_bindings": {
+    "30": [
+      -1,
+      0
+    ],
+    "32": [
+      1,
+      0
+    ],
+    "31": [
+      0,
+      -1
+    ],
+    "17": [
+      0,
+      1
+    ]
+  },
+  "right_analog_bindings": {},
+  "button_bindings": {},
+  "toggle_bindings": {},
+  "scripts": [
+    "E:\\Programming\\ultrakey\\ultrakey_ui\\configs\\hello.uk\\test.lua"
+  ],
+  "lt_binding": 96,
+  "rt_binding": 95,
+  "ls_binding": 99,
+  "rs_binding": 94,
+  "threshold": false,
+  "sensitivity": 0.1,
+  "tagged_bindings": {},
+  "value_bindings": {}
+}

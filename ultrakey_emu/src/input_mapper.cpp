@@ -12,16 +12,22 @@ InputRemapper::~InputRemapper() {
     }
 }
 
+#define RING_BUFLEN 8
+InputVector accum[RING_BUFLEN] = { 0 };
+int tick = 0;
+
 /*
     normalized bindings
 */
 void InputRemapper::update() {
 
+    tick = (tick + 1) % RING_BUFLEN;
+
     /*
         update movement normals
     */
     if (ls_binding == VKEY_KEYBOARD) {
-        InputVector normalizedVector = { 0 };
+        InputVector normalizedVector = analog_offset;
         for (auto & [key, vector] : left_analog_bindings) {
             if (itf.key_down(key)) {
                 normalizedVector.dx += vector.dx;
@@ -31,16 +37,21 @@ void InputRemapper::update() {
             itf.block(key, true);
         }
     
-        float magnitude = sqrtf((normalizedVector.dx * normalizedVector.dx) + (normalizedVector.dy * normalizedVector.dy));
-        normalizedVector.dx /= magnitude;
-        normalizedVector.dy /= magnitude;
+        float magnitude = sqrtf(
+            (normalizedVector.dx * normalizedVector.dx) + (normalizedVector.dy * normalizedVector.dy)
+        );
+
+        if (magnitude > 1.f) {
+            normalizedVector.dx /= magnitude;
+            normalizedVector.dy /= magnitude;
+        }
     
-        l_n_dxy.dx = normalizedVector.dx * S16_lim;
-        l_n_dxy.dy = normalizedVector.dy * S16_lim;
+        l_n_dxy.dx = fclampf(normalizedVector.dx, -1.f, 1.f) * S16_lim;
+        l_n_dxy.dy = fclampf(normalizedVector.dy, -1.f, 1.f) * S16_lim;
     }
 
     if (rs_binding == VKEY_KEYBOARD) {
-        InputVector normalizedVector = { 0 };
+        InputVector normalizedVector = analog_offset;
         for (auto & [key, vector] : right_analog_bindings) {
             if (itf.key_down(key)) {
                 normalizedVector.dx += vector.dx;
@@ -50,24 +61,29 @@ void InputRemapper::update() {
             itf.block(key, true);
         }
     
-        float magnitude = sqrtf((normalizedVector.dx * normalizedVector.dx) + (normalizedVector.dy * normalizedVector.dy));
-        normalizedVector.dx /= magnitude;
-        normalizedVector.dy /= magnitude;
+        float magnitude = sqrtf(
+            (normalizedVector.dx * normalizedVector.dx) + (normalizedVector.dy * normalizedVector.dy)
+        );
+
+        if (magnitude > 1.f) {
+            normalizedVector.dx /= magnitude;
+            normalizedVector.dy /= magnitude;
+        }
     
-        r_n_dxy.dx = normalizedVector.dx * S16_lim;
-        r_n_dxy.dy = normalizedVector.dy * S16_lim;
+        r_n_dxy.dx = fclampf(normalizedVector.dx, -1.f, 1.f) * S16_lim;
+        r_n_dxy.dy = fclampf(normalizedVector.dy, -1.f, 1.f) * S16_lim;
     }
 
     /*
         update button bindings
     */
-    button_presses = 0;
-
     bool htoggle = true;
     for (auto & [key, binding] : button_bindings) {
         if (binding == BCODE_PASS) {
             continue;
         }
+
+        button_presses &= ~binding;
 
         if (itf.key_down(key)) {
             button_presses |= binding;
@@ -114,12 +130,27 @@ void InputRemapper::update() {
         LOGI("toggled ultrakey state");
     }
 
+    accum[tick] = m_bi_dxy;
+
+    InputVector avg = { 0 };
+    for (int i = 0; i < RING_BUFLEN; ++i) {
+        avg.dx += accum[i].dx / (float) RING_BUFLEN;
+        avg.dy += accum[i].dy / (float) RING_BUFLEN;
+    }
+
+    // accum.dx /= 2.f;
+    // accum.dy /= 2.f;
+    // if (accum.dx < 10 / (float) S16_lim) accum.dx = 0.f;
+    // if (accum.dy < 10 / (float) S16_lim) accum.dy = 0.f;
+
+    // accum.dx += m_bi_dxy.dx;
+    // accum.dy += m_bi_dxy.dy;
+
     /*
         cycle oscillator
     */
-
-    m_b_dxy.dx = (short) (fclampf(m_bi_dxy.dx, -1.f, 1.f) * S16_lim);
-    m_b_dxy.dy = (short) (fclampf(m_bi_dxy.dy, -1.f, 1.f) * S16_lim);
+    m_b_dxy.dx = (short) (fclampf(avg.dx + aim_offset.dx, -1.f, 1.f) * S16_lim);
+    m_b_dxy.dy = (short) (fclampf(avg.dy + aim_offset.dy, -1.f, 1.f) * S16_lim);
 
     /*
         update block
@@ -184,6 +215,10 @@ USHORT InputRemapper::get_button_outputs() const {
     return button_presses;
 }
 
+void InputRemapper::press_button(ButtonCode button) {
+    button_presses |= button;
+}
+
 OutputVector InputRemapper::get_lstick() const {
     if (ls_binding == VKEY_MOUSE) {
         return m_b_dxy;
@@ -229,6 +264,10 @@ json InputRemapper::export_bytes() const {
 
     for (auto & [key, mode] : itf.tagged_bindings) {
         j["tagged_bindings"][std::to_string(key)] = mode;
+    }
+
+    for (auto & [key, val] : itf.value_bindings) {
+        j["value_bindings"][key] = val;
     }
 
     j["scripts"] = script_paths;
@@ -282,6 +321,13 @@ void InputRemapper::import_bytes(BYTE* bytes) {
         for (const auto& [key, value] : j["tagged_bindings"].items()) {
             VirtualKey vkey = (VirtualKey) (std::stoi(key));
             itf.bind_flag(vkey, value);
+        }
+    }
+
+    if (j.contains("value_bindings")) {
+        for (const auto& [key, value] : j["value_bindings"].items()) {
+            int val = value.get<int>();
+            itf.bind_value(key, val);
         }
     }
 

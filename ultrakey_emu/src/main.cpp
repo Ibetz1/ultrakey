@@ -1,7 +1,20 @@
 #include "main.hpp"
 
+static Emulator emulator = Emulator();
+static WinSignal signals = WinSignal();
+
+#define SIGNAL_STOP "UKSSP"
+
 int main(int argc, char* argv[]) {
-    Emulator emulator;
+    for (int i = 0; i < argc; ++i) {
+        printf("%s\n", argv[i]);
+    }
+
+    signals.add(SIGNAL_STOP, []() {
+        THROW("emulator stopped");
+    });
+
+    signals.start();
 
     char* save_path = 0;
 

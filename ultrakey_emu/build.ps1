@@ -1,6 +1,6 @@
 param (
-    [string]$outdir = "$(Split-Path -Path $MyInvocation.MyCommand.Path -Parent)\bin",
-    [string]$name = "ultrakey_emu.exe"
+    [string]$name = "ultrakey_emu.exe",
+    [string]$outdir = "$(Split-Path -Path $MyInvocation.MyCommand.Path -Parent)\bin"
 )
 
 $dir = Split-Path -Path $MyInvocation.MyCommand.Path -Parent

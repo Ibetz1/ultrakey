@@ -12,6 +12,8 @@ from urllib.parse import urlparse, parse_qs
 import urllib.parse
 import webbrowser
 import account
+import re
+from watchdog.events import FileModifiedEvent
 
 CONTAINER_EXTENSION = ".uk"
 CONFIG_EXTENSION = ".ukc"
@@ -20,7 +22,7 @@ SCRIPT_EXTENSION = ".lua"
 class LogoutButton(Button):
     def __init__(self, gui):
         super().__init__("Logout", callback=self.logout)
-        self.setObjectName("Logout")
+        self.setObjectName("Flagged")
         self.gui=gui
 
     def logout(self, widget: Button):
@@ -45,19 +47,20 @@ class ConfigContainer(Container):
         self.new_button = input_actions.add_widget(Button("New", callback=self.new_config))
         self.import_button = input_actions.add_widget(Button("Import", callback=self.import_config))
         self.save_button = input_actions.add_widget(Button("Save", callback=self.save_config))
+        self.rename_button = input_actions.add_widget(Button("Rename", callback=self.rename_config))
         self.remove_button = input_actions.add_widget(Button("Delete", callback=self.delete_config))
+        self.remove_button.setObjectName("Flagged")
         self.new_button.setMaximumWidth(65)
         self.save_button.setMaximumWidth(65)
         self.remove_button.setMaximumWidth(65)
         self.import_button.setMaximumWidth(65)
+        self.rename_button.setMaximumWidth(65)
         self.logout.setMaximumWidth(65)
 
         buttons: Row = self.add_widget(Row())
         self.start_button = buttons.add_widget(Button("Start Emulator", callback=self.start_config))
         self.dropdown.addItems(get_containers(self.config_folder, CONTAINER_EXTENSION))
         self.check_button_status()
-
-
 
     def rename_config(self, widget: Button):
         name, ok = QInputDialog.getText(None, "Enter Name", "Enter New Config Name")
@@ -83,13 +86,10 @@ class ConfigContainer(Container):
     def new_config(self, widget: Button):
         name, ok = QInputDialog.getText(None, "Enter Name", "Enter New Config Name")
         if ok and name.strip():
-
-            # make the config folder
             (path, name) = new_folder(self.config_folder, name, CONTAINER_EXTENSION)
             self.dropdown.set_items(get_containers(self.config_folder, CONTAINER_EXTENSION))
             self.dropdown.setCurrentText(name)
 
-            # make the config file
             path = os.path.abspath(path + "/" + self.config_file + CONFIG_EXTENSION)
 
             with open(path, "wb+") as f:
@@ -154,7 +154,7 @@ class ConfigContainer(Container):
     def import_config(self, widget: Button):
         print("import config")
         selector: FolderSelector = FolderSelector()
-        path = selector.showDialog()
+        path = selector.show_dialog()
 
         if path != None:
             if path.lower().endswith(CONTAINER_EXTENSION):
@@ -206,13 +206,6 @@ class ConfigContainer(Container):
         path = os.path.abspath(self.config_folder + f"/{self.selected_config}/{self.config_file}{CONFIG_EXTENSION}")
 
         self.gui.emulator.start(path)
-
-        tasks = self.gui.emulator.find_emu_processes()
-
-        if len(tasks) > 0:
-            self.start_button.setText("Restart Emulator")
-        else:
-            self.start_button.setText("Start Emulator")
 
     def check_button_status(self, save_en = True):
         print("curcfg", self.selected_config)
@@ -405,6 +398,8 @@ class StickContainer(Container):
         self.gui.config_container.check_button_status(save_en=save_en)
 
     def stick_state_changed(self, widget: Dropdown):
+        print(self.gui.bindings.rs_binding)
+
         binding = widget.get_attr("BINDING")
         row = widget.get_attr("ROW")
         state = widget.currentIndex()
@@ -505,60 +500,280 @@ class ToggleContainer(Container):
 
 class FlagBindingContainer(Container):
     def __init__(self, gui, parent=None):
-        super().__init__(title="Special", parent=parent)
+        super().__init__(title="Bindings", parent=parent)
         self.gui: UltraKeyUI = gui
-        self.init_ui()
+        self.load_ui()
+
+    def load_ui(self):
+        self.available_bindings: ScrollableList = self.add_widget(ScrollableList())
+
+    def binding_row(self, text):
+        label: QLabel = QLabel()
+        label.setPixmap(self.gui.icons["bind"].pixmap(24, 24))
+        label.setMinimumWidth(24)
+
+        binding = self.available_bindings.add_item(
+            button_input_row(
+                1, 
+                icon=self.gui.icons["keyboard"],
+                callback=self.binding_changed,
+            )
+        )
+        binding.set_attr("BINDING", text)
+
+        binding.add_widget(label)
+        bind_input = binding.add_widget(TextInput())
+        bind_input.toggle_disable(True)
+        bind_input.setText(text)
+
+        bind_input.toggle_disable(True)
+        bind_input.setMinimumWidth(128)
+
+        return binding
+
+    def value_row(self, text, minv=0, maxv=100):
+        label: QLabel = QLabel()
+        label.setPixmap(self.gui.icons["bind"].pixmap(24, 24))
+        label.setMinimumWidth(24)
+
+        icon: QLabel = QLabel()
+        icon.setPixmap(self.gui.icons["value"].pixmap(24, 24))
+        icon.setMinimumWidth(24)
+
+        binding = self.available_bindings.add_item(Row())
+        binding.add_widget(icon)
+        slider = binding.add_widget(Slider(callback=self.value_changed))
+        slider.slider.setMinimum(minv)
+        slider.slider.setMaximum(maxv)
+
+        binding.set_attr("BINDING", text)
+
+        binding.add_widget(label)
+        label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        bind_label = binding.add_widget(TextInput())
+        bind_label.setText(text)
+        bind_label.toggle_disable(True)
+
+        return binding
 
     def binding_changed(self, widget: InputBox):
-        flagged, unflagged = button_input_validator(self)
+        flagged, unflagged = button_input_validator(self.available_bindings)
         save_en = len(flagged) < 1
 
         self.gui.bindings.flagged_bindings = {}
-        for item in unflagged:
-            row = item.get_attr("INDEX")
 
-            if row != None and row < len(self.row_data):
-                mapping: TextInput = self.row_data[row][1]
-                if item.text() in QT_TO_VIRTUAL_KEY_MAP and isinstance(mapping, TextInput):
-                    key_code = QT_TO_VIRTUAL_KEY_MAP[item.text()]
-                    self.gui.bindings.flagged_bindings[key_code] = mapping.text()
+        for item in self.available_bindings.grid_data:
+            if isinstance(item, Row):
+                attr = item.get_attr("BINDING")
+                if (attr != None and isinstance(item.grid_data[1], InputBox)):
+                    box_data: InputBox = item.grid_data[1]
+                    value = box_data.text()
+                    key_code = QT_TO_VIRTUAL_KEY_MAP.get(value)
 
+                    if key_code != None:
+                        self.gui.bindings.flagged_bindings[key_code] = attr
+        
         self.gui.config_container.check_button_status(save_en=save_en)
 
-    def init_ui(self):
-        ROWS = 14
-        COLS=1
+    def value_changed(self, widget: Slider):
+        self.gui.bindings.value_bindings = {}
 
-        self.row_data = {}
+        for item in self.available_bindings.grid_data:
+            if isinstance(item, Row):
+                attr = item.get_attr("BINDING")
+                if (attr != None and isinstance(item.grid_data[1], Slider)):
+                    slider: Slider = item.grid_data[1]
+                    v = slider.slider.value()
 
-        def generate_row(index):
-            label: QLabel = QLabel()
-            label.setPixmap(self.gui.icons["bind"].pixmap(24, 24))
-            label.setMinimumWidth(24)
+                    if (attr != None):
+                        self.gui.bindings.value_bindings[attr] = v
 
-            binding = self.add_widget(
-                button_input_row(
-                    COLS, 
-                    icon=self.gui.icons["keyboard"], 
-                    callback=self.binding_changed,
-                    attr={"INDEX": index}
-                )
-            )
-            binding.add_widget(label)
-            bind_input = binding.add_widget(TextInput(callback=self.binding_changed))
-            bind_input.setMinimumWidth(128)
-            bind_input.set_attr("INDEX", index)
+    def assign_flags(self, used_flags):
+        flagged_bindings = self.gui.bindings.flagged_bindings
+        value_bindings = self.gui.bindings.value_bindings
 
-            self.row_data[index] = (binding, bind_input)
+        for name, widget in used_flags.items():
+            if name in flagged_bindings.values():
+                key_code = next((k for k, v in flagged_bindings.items() if v == name), None)
+                key_label = VIRTUAL_TO_QT_KEY_MAP.get(int(key_code), None)
+            
+                if (key_label != None) and isinstance(widget, Row):
+                    attr = widget.get_attr("BINDING")
+                    binding_widget = widget.grid_data[1]
+                    if attr != None and isinstance(binding_widget, InputBox):
+                        binding_widget.setText(key_label)
+            
+            if name in value_bindings.keys() and isinstance(widget, Row):
+                attr = widget.get_attr("BINDING")
+                binding_widget = widget.grid_data[1]
 
-        for i in range(ROWS):
-            generate_row(i)
+                if (attr != None and isinstance(binding_widget, Slider)):
+                    v = value_bindings.get(attr, None)
+                    binding_widget.slider.setValue(v)
+
+        self.binding_changed(None)
+        self.value_changed(None)
+
+    def load_flags(self):
+        self.available_bindings.clear()
+
+        used_flags = {}
+        pattern = re.compile(
+            r"--\[\s*(?:(?P<lval>-?\d+)\s*,\s*(?P<rval>-?\d+)|(?P<isbind>bind))\s*\]\s*"
+            r"(?P<label>\w+)(?:\s*=\s*(?P<assignment>[^\n]+))?"
+        )
+
+        for path in self.gui.bindings.scripts:
+            with open(path) as f:
+                for line in f:
+                    for match in pattern.finditer(line):
+                        groups = match.groupdict()
+                        vtype = 'bind' if groups.get('isbind', None) else 'range'
+                        label = groups['label']
+                        assignment = groups['assignment'].strip() if match['assignment'] else None
+                        lvalue = int(groups['lval']) if groups['lval'] else None
+                        rvalue = int(groups['rval']) if groups['rval'] else None
+                        
+                        if (vtype == "bind" and not label in used_flags):
+                            used_flags[label] = self.binding_row(label)
+
+                        elif (vtype == "range" and not label in used_flags):
+                            used_flags[label] = self.value_row(label, lvalue or 0, rvalue or 100)
+                            if (assignment != None):
+                                val = int(assignment)
+                                if not label in self.gui.bindings.value_bindings:
+                                    self.gui.bindings.value_bindings[label] = val
+
+        self.assign_flags(used_flags)
+
+class ScriptContainer(Container):
+    def __init__(self, gui, parent=None):
+        super().__init__("Scripts", parent=parent)
+        self.gui: UltraKeyUI = gui
+        self.scripts: dict = {}
+        self.load_ui()
+
+    def load_ui(self):
+        self.button_row = self.add_widget(Row())
+        self.add_button = self.button_row.add_widget(Button("New", callback=self.add_script))
+        self.add_button = self.button_row.add_widget(Button("Import", callback=self.import_script))
+        self.available_scripts: ScrollableList = self.add_widget(ScrollableList())
+
+    def script_entry(self, name: str) -> Row:
+        container = Row()
+
+        conf_container = self.gui.config_container
+        config = os.path.join(conf_container.config_folder, conf_container.selected_config)
+        path = os.path.join(config, strip_extension(name) + SCRIPT_EXTENSION)
+
+        check_box = QCheckBox()
+        container._layout.addWidget(check_box, alignment=Qt.AlignmentFlag.AlignVCenter)
+        check_box.stateChanged.connect(lambda state: self.select_script(state, path))
+
+        check_box.setChecked(path in self.gui.bindings.scripts)
+
+        name_box: TextInput = container.add_widget(TextInput())
+        name_box.toggle_disable(True)
+        name_box.setText(name)
+        open_button = container.add_widget(Button("Open", callback=partial(self.open_script, path)))
+        rename_button = container.add_widget(Button("Rename", callback=partial(self.rename_script, path)))
+        container.delete_button = container.add_widget(Button("Delete", callback=partial(self.delete_script, path)))
+        container.delete_button.setObjectName("Flagged")
+        container._layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+
+        return container
+    
+    def open_script(self, path, widget: Button):
+        try:
+            os.system(f"code {path}")
+        except:
+            print("failed to open script, please get VS code")
+    
+    def rename_script(self, path, widget: Button):
+        name, ok = QInputDialog.getText(None, "Enter Name", "Enter New Config Name")
+        if ok and name.strip():
+            conf_container = self.gui.config_container
+            config = os.path.join(conf_container.config_folder, conf_container.selected_config)
+
+            (new_path, _) = get_new_file_name(config, name.strip(), SCRIPT_EXTENSION)
+
+            try:
+                os.rename(path, new_path)
+            except:
+                print("failed to rename")
+
+        self.load_scripts()
+
+    def delete_script(self, path, widget: Button):
+        try:
+            os.remove(path)
+        except:
+            print("failed to rename")
+
+        self.load_scripts()
+
+    def add_script(self, widget: Button):
+        name, ok = QInputDialog.getText(None, "Enter Name", "Enter New Config Name")
+        if ok and name.strip():
+            conf_container = self.gui.config_container
+            config = os.path.join(conf_container.config_folder, conf_container.selected_config)
+            path = os.path.join(self.gui.config_container.config_folder, strip_extension(name) + SCRIPT_EXTENSION)
+
+            (path, name) = get_new_file_name(config, name.strip(), SCRIPT_EXTENSION)
+
+            with open(path, "wb+") as f:
+                f.write(LUA_TEMPLATE.encode('utf-8'))
+
+        self.load_scripts()
+
+    def load_scripts(self):
+        self.scripts = {}
+
+        self.available_scripts.clear()
+
+        conf_container = self.gui.config_container
+        config = os.path.join(conf_container.config_folder, conf_container.selected_config)
+        scripts: list = get_containers(config, "lua")
+
+        for script in scripts:
+            self.available_scripts.add_item(self.script_entry(script))
+
+    def select_script(self, state, path):
+        if state > 0:
+            self.gui.bindings.scripts.append(path)
+        else:
+            self.gui.bindings.scripts.remove(path)
+
+        self.gui.bindings.scripts = list(set(self.gui.bindings.scripts))
+
+        self.gui.flag_bindings.load_flags()
+
+    def import_script(self, widget: Button):
+        selector: FolderSelector = FileSelector(extension="*.lua")
+        path = selector.show_dialog()
+
+        if path != None:
+            path = os.path.abspath(path)
+            if path.lower().endswith(SCRIPT_EXTENSION):
+                name = strip_extension(os.path.basename(path))
+                dest = os.path.abspath(self.gui.config_container.config_folder + f"/{self.gui.config_container.selected_config}")
+                
+                try:
+                    if not dest in path:
+                        (ndest, name) = get_new_file_name(dest, name, SCRIPT_EXTENSION)
+                        shutil.copy2(path, ndest)
+
+                except:
+                    print("failed to copy files")
+            else:
+                print("invalid file path")
 
 class UltraKeyUI(BaseUI):
     def __init__(self, ui: GUI):
         super().__init__()
         self.bindings: InputRemapper = InputRemapper()
         self.emulator: Emulator = Emulator()
+        self.emulator.stop()
         self.gui = ui
 
         self.pixmaps = ui.pixmaps
@@ -566,11 +781,13 @@ class UltraKeyUI(BaseUI):
         self.gui.main_window.setWindowIcon(self.icons["icon"])
 
         self.load_ui()
-
+        self.script_list.load_scripts()
         ui.bind_on_exit(self.on_exit)
 
+        start_watching_folder(self.config_container.config_folder, self.file_watchdog)
+
     def on_exit(self):
-        self.emulator.terminate()
+        self.emulator.stop()
 
     def load_ui(self):
         self.button_container: ButtonContainer = ButtonContainer(self)
@@ -578,35 +795,40 @@ class UltraKeyUI(BaseUI):
         self.trigger_container: TriggerContainer = TriggerContainer(self)
         self.toggle_container: ToggleContainer = ToggleContainer(self)
         self.flag_bindings: FlagBindingContainer = FlagBindingContainer(self)
+        self.script_list: ScriptContainer = ScriptContainer(self)
         self.config_container: ConfigContainer = ConfigContainer(self)
-
-        self.controls_row = self.add_widget(Row(spacing=50))
-        self.controls_row.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
 
         image_label = QLabel()
         pixmap = self.pixmaps["roller_graphic"].scaledToWidth(250, Qt.TransformationMode.SmoothTransformation)
         image_label.setPixmap(pixmap)
         image_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         image_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-
-        # self.icon_row = self.add_widget(Row())
-        # self.icon_row.add_widget(image_label)
         
         self.add_widget(self.config_container)
-        self.main_row = self.add_widget(Row())
-        self.sticks_col: Column = self.main_row.add_widget(Column())
-        self.sticks_col.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
-        self.sticks_col.add_widget(self.stick_container)
-        self.sticks_col.add_widget(self.toggle_container)
 
-        self.triggers_row: Row = self.sticks_col.add_widget(Row())
+        self.tabs: QTabWidget = self.add_widget(QTabWidget())
+        self.controller_row = Row()
 
-        self.triggers_row.add_widget(self.trigger_container)
-        self.triggers_row._layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.setup_col: Column = self.controller_row.add_widget(Column())
+        self.setup_col.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
+        self.setup_col.add_widget(self.stick_container)
+        self.setup_col.add_widget(self.toggle_container)
+        self.setup_col.add_widget(self.trigger_container)
+        self.setup_col._layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.scripts_col = self.main_row.add_widget(Column())
-        self.scripts_col.add_widget(self.button_container)
-        self.main_row.add_widget(self.flag_bindings)
+        self.buttons_col = self.controller_row.add_widget(Column())
+        self.buttons_col.add_widget(self.button_container)
+
+        self.script_row = Row()
+        self.script_row._layout.addWidget(self.flag_bindings, stretch=0)
+        self.script_row._layout.addWidget(self.script_list, stretch=0)
+
+        self.tabs.addTab(self.controller_row, "Controller")
+        self.tabs.addTab(self.script_row, "Scripts")
+
+    def file_watchdog(self, event: FileModifiedEvent):
+        if self.config_container.selected_config and self.config_container.selected_config in event.src_path:
+            QTimer.singleShot(0, self.map_bindings_ui)
 
     def map_bindings_ui(self):
         for data in [
@@ -614,7 +836,6 @@ class UltraKeyUI(BaseUI):
             self.toggle_container.toggle_data,
             self.trigger_container.trigger_data,
             self.stick_container.stick_data,
-            {k: v[0] for k, v in self.flag_bindings.row_data.items() },
         ]:
             for _, widget in data.items():
                 if isinstance(widget, Row):
@@ -623,8 +844,6 @@ class UltraKeyUI(BaseUI):
                             item.setText("")
                         elif isinstance(item, TextInput):
                             item.setText("")
-                elif isinstance(widget, Dropdown):
-                    widget.setCurrentIndex(0)
 
         for (binding_data, widget_data) in [
             (self.bindings.button_bindings, self.button_container.button_data),
@@ -638,19 +857,6 @@ class UltraKeyUI(BaseUI):
                             item.setText(VIRTUAL_TO_QT_KEY_MAP[int(keycode)])
                             break
                             
-
-
-        for (_, widgets), (key_code, value) in zip(self.flag_bindings.row_data.items(), self.bindings.flagged_bindings.items()):
-            row_widget = widgets[0]
-            
-            if int(key_code) in VIRTUAL_TO_QT_KEY_MAP:
-                key_code = VIRTUAL_TO_QT_KEY_MAP[int(key_code)]
-                for widget in row_widget.grid_data:
-                    if isinstance(widget, InputBox):
-                        widget.setText(key_code)
-                    elif isinstance(widget, TextInput):
-                        widget.setText(value)
-
         for binding, widget in {
             "lt_binding": self.trigger_container.trigger_data.get("lt_binding", None),
             "rt_binding": self.trigger_container.trigger_data.get("rt_binding", None)
@@ -693,6 +899,9 @@ class UltraKeyUI(BaseUI):
             threshold.setCurrentIndex(1)
         else:
             threshold.setCurrentIndex(0)
+
+        self.script_list.load_scripts()
+        self.flag_bindings.load_flags()
 
 class DiscordLogin(QWebEngineView):
     def __init__(self, ui: GUI, redirect=None):

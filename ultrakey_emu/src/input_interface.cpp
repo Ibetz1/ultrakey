@@ -58,7 +58,6 @@ int InputInterface::handle_mouse(const InterceptionMouseStroke &mouseStroke) {
             } else {
                 ret = key_block[VKEY_MOUSE];
             }
-
         } else {
             ret = 0;
         }
@@ -229,6 +228,14 @@ bool InputInterface::flag_active(std::string flag) const {
     return false;
 }
 
+int InputInterface::get_value(std::string key) const {
+    return value_bindings.at(key);
+}
+
 void InputInterface::bind_flag(VirtualKey key, std::string binding) {
     tagged_bindings.insert({key, binding});
+}
+
+void InputInterface::bind_value(std::string key, int value) {
+    value_bindings.insert({key, value});
 }

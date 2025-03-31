@@ -9,6 +9,8 @@
 #include <unordered_map>
 #include <stdint.h>
 #include <sys/stat.h>
+#include <string>
+#include <thread>
 
 #include "xinput.h"
 #include "vigem/Client.h"
@@ -18,9 +20,7 @@
 
 using json = nlohmann::json;
 
-#pragma comment(lib, "setupapi.lib")
-
-constexpr short S16_lim = 0x7FFE;
+constexpr short S16_lim = 0x7FFE - 1;
     
 inline float fclampf(float val, float min, float max) {
     return fmaxf(fminf(val, max), min);
@@ -51,5 +51,6 @@ struct ToggleBinding {
 #include "gamepad.hpp"
 #include "emulator.hpp"
 #include "file.hpp"
+#include "winsignal.hpp"
 
 #endif

@@ -5,6 +5,9 @@ import os
 from assets import *
 import requests
 import assets
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import time
 
 def button_input_validator(container: Container):
     key_table = {k: [] for k, _ in QT_TO_VIRTUAL_KEY_MAP.items()}
@@ -68,7 +71,7 @@ def stick_input_row(cols, icons: list[QPixmap] = None, attributes: list = None, 
 def toggle_button_row(row: Row, state: bool):
     for item in row.grid_data:
         if isinstance(item, InputBox):
-            item.toggle_disbled(state)
+            item.toggle_disabled(state)
 
 def get_containers(path, ext):
     return [item for item in os.listdir(path) if ext in item]
@@ -86,8 +89,33 @@ def get_new_file_name(path, name, ext):
 
     return (path, name)
 
+def strip_extension(file):
+    return os.path.splitext(file)[0]
+
 def new_folder(path, name, ext):
     (path, name) = get_new_file_name(path, name, ext)
     os.mkdir(path)
     return (path, name)
+
+class FolderChangeHandler(FileSystemEventHandler):
+    def __init__(self, callback, throttle_interval=1.0):
+        self.callback = callback
+        self.throttle_interval = throttle_interval
+        self._last_called = 0
+
+    def on_any_event(self, event):
+        if event.is_directory:
+            return
+        now = time.time()
+        if now - self._last_called >= self.throttle_interval:
+            self._last_called = now
+            self.callback(event)
+
+def start_watching_folder(folder_path, callback):
+    event_handler = FolderChangeHandler(callback)
+    observer = Observer()
+    observer.schedule(event_handler, path=folder_path, recursive=True)
+    observer.daemon = True
+    observer.start()
+    return observer
 

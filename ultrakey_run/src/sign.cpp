@@ -90,3 +90,88 @@ void decrypt(char* out, const char* in, size_t len, uint8_t key) {
     }
     out[len] = '\0';
 }
+
+#define BLOCK_SIZE 16384 // 16KB buffer
+
+void sha256_hwid_key(const char *hwid, uint8_t *key_out) {
+    SHA256((const uint8_t *)hwid, strlen(hwid), key_out);
+}
+
+
+uint8_t *encrypt_buffer_in_place(uint8_t *buffer, size_t *length, const char *hwid) {
+    if (!buffer || !length || *length == 0) return NULL;
+
+    uint8_t key[32], iv[16];
+    sha256_hwid_key(hwid, key);
+    RAND_bytes(iv, sizeof(iv));
+
+    // Prepare output buffer: IV + encrypted data (same length as input, plus IV)
+    size_t original_len = *length;
+    size_t max_out = 16 + original_len + 16; // 16 for IV + possible overhead
+    uint8_t *out_buf = (uint8_t *)realloc(buffer, max_out);
+    if (!out_buf) return NULL;
+
+    // Move original data forward to make room for IV at the start
+    memmove(out_buf + 16, out_buf, original_len);
+    memcpy(out_buf, iv, 16); // write IV at the beginning
+
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key, iv);
+
+    size_t buffer_offset = 16;
+    int chunk_len;
+    size_t total_encrypted = 0;
+
+    for (size_t i = 0; i < original_len; i += BLOCK_SIZE) {
+        size_t block = (i + BLOCK_SIZE <= original_len) ? BLOCK_SIZE : (original_len - i);
+        EVP_EncryptUpdate(ctx, out_buf + buffer_offset, &chunk_len, out_buf + 16 + i, block);
+        buffer_offset += chunk_len;
+        total_encrypted += chunk_len;
+    }
+
+    EVP_EncryptFinal_ex(ctx, out_buf + buffer_offset, &chunk_len);
+    buffer_offset += chunk_len;
+    total_encrypted += chunk_len;
+
+    EVP_CIPHER_CTX_free(ctx);
+
+    *length = 16 + total_encrypted;
+    return out_buf;
+}
+
+uint8_t *decrypt_buffer_in_place(uint8_t *buffer, size_t *length, const char *hwid) {
+    if (!buffer || !length || *length <= 16) return NULL;
+
+    uint8_t key[32], iv[16];
+    sha256_hwid_key(hwid, key);
+    memcpy(iv, buffer, 16);
+
+    size_t encrypted_len = *length - 16;
+
+    EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
+    EVP_DecryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key, iv);
+
+    uint8_t *out_buf = (uint8_t *)malloc(encrypted_len);
+    if (!out_buf) {
+        EVP_CIPHER_CTX_free(ctx);
+        return NULL;
+    }
+
+    int chunk_len;
+    size_t total = 0;
+
+    for (size_t i = 0; i < encrypted_len; i += BLOCK_SIZE) {
+        size_t block = (i + BLOCK_SIZE <= encrypted_len) ? BLOCK_SIZE : (encrypted_len - i);
+        EVP_DecryptUpdate(ctx, out_buf + i, &chunk_len, buffer + 16 + i, block);
+        total += chunk_len;
+    }
+
+    EVP_DecryptFinal_ex(ctx, out_buf + total, &chunk_len);
+    total += chunk_len;
+
+    EVP_CIPHER_CTX_free(ctx);
+    free(buffer);
+
+    *length = total;
+    return out_buf;
+}

@@ -21,9 +21,7 @@
   "lt_binding": 96,
   "rs_binding": 94,
   "rt_binding": 95,
-  "scripts": [
-    "./scripts/test.lua"
-  ],
+  "scripts": [],
   "sensitivity": 0.07999999821186066,
   "threshold": false,
   "toggle_bindings": {

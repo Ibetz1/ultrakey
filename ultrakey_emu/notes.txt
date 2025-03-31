@@ -1,1 +1,0 @@
-g++ src/*.cpp -o emu.bin -Iinclude -L. -lsetupapi -linterception -llua -lViGEmClient
