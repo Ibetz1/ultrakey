@@ -57,7 +57,7 @@ asset_files = {
     "keyboard.png": "keyboard",
     "icon.ico": "icon",
     "uksignin.png": "signin",
-    "value.png": "value"
+    "value.png": "value",
 }
 
 main_theme = """
@@ -67,6 +67,12 @@ main_theme = """
 
     #Title { 
         font-size: 18px; 
+    }
+
+    #ErrMessage { 
+        color: #F15B22;
+        font-size: 18px;
+        font-weight: bold;
     }
 
     #Flagged {
@@ -245,6 +251,10 @@ def load_pix_maps():
         pixmaps[key] = QPixmap(path)
 
     return pixmaps;
+
+def read_file(file):
+    with open(file, 'r', encoding='utf-8') as file:
+        return file.read().encode("utf-8")
 
 lua_template = """function main()
     -- this gets repeated every frame, enjoy :)

@@ -100,6 +100,8 @@ def is_token_valid(access_token):
         return False
 
 def check_login_status(gui, access_token):
+    print("checking login status")
+
     guilds = get_guilds(access_token=access_token)
     roles = get_subscribed("", access_token=access_token)
 
@@ -114,13 +116,15 @@ def check_login_status(gui, access_token):
     else:
         gui.set_window(ui_interface.PurchaseWindow(gui))
 
-def login_user(gui):
+def login_user(gui, err=None):
+    print("logging in")
+
     if is_token_valid(gui.access_token):
         check_login_status(gui, gui.access_token)
     else:
-        gui.set_window(ui_interface.CredentialsWindow(gui))
-        
+        gui.set_window(ui_interface.CredentialsWindow(gui, err=err))
+
 def logout_user(gui):
     del_token()
     gui.access_token = ""
-    login_user(gui)
+    gui.set_window(ui_interface.CredentialsWindow(gui))

@@ -1,11 +1,54 @@
 import sys
 from PyQt6.QtWidgets import *
-from PyQt6.QtGui import QKeyEvent, QIcon, QPixmap, QGuiApplication
+from PyQt6.QtGui import QKeyEvent, QIcon, QPixmap, QGuiApplication, QPainter, QPen, QColor, QConicalGradient
 from PyQt6.QtCore import *
 import assets
 from functools import partial
 import string
 import random
+
+class LoadingSpinner(QWidget):
+    def __init__(self, parent=None, radius=30, thickness=6):
+        super().__init__(parent)
+        self.radius = radius
+        self.thickness = thickness
+        self.angle = 0
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.rotate)
+        self.timer.start(16)  # ~60 FPS
+
+        self.setFixedSize(radius * 2 + thickness * 2, radius * 2 + thickness * 2)
+
+    def rotate(self):
+        self.angle = (self.angle + 3) % 360
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        center = self.rect().center()
+        gradient = QConicalGradient(QPointF(center), -self.angle)
+
+        # Setup gradient color stops
+        gradient.setColorAt(0.0, QColor("#38C6F3"))
+        gradient.setColorAt(1.0, QColor(0, 0, 0, 0))
+
+        pen = QPen()
+        pen.setWidth(self.thickness)
+        pen.setBrush(gradient)
+        pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+
+        painter.setPen(pen)
+        painter.drawArc(
+            self.thickness,
+            self.thickness,
+            self.radius * 2,
+            self.radius * 2,
+            0,
+            360 * 16  # full circle (angle in 1/16 deg)
+        )
 
 class Button(QPushButton):
     def __init__(self, text, callback=None, parent=None, attr={}):
@@ -406,6 +449,13 @@ class BaseUI(QWidget):
         self.layout: QVBoxLayout = QVBoxLayout()
         self.setLayout(self.layout)
 
+    def clear_layout(self):
+        while self.layout.count():
+            item = self.layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
     def on_load(self):
         pass
 
@@ -416,8 +466,9 @@ class BaseUI(QWidget):
     def cleanup(self):
         print("cleanup")
 
-class GUI:
+class GUI(QObject):
     def __init__(self, style_sheet=None):
+        super().__init__()
         self.app = QApplication(sys.argv)
         self.main_window = QMainWindow()
         self.main_window.setWindowTitle(''.join(random.choices(string.ascii_letters + string.digits, k=5)))

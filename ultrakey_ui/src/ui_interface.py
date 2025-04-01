@@ -12,6 +12,7 @@ from urllib.parse import urlparse, parse_qs
 import urllib.parse
 import webbrowser
 import account
+import login
 import re
 from watchdog.events import FileModifiedEvent
 
@@ -1012,12 +1013,15 @@ class DiscordLogin(QWidget):
         self.deleteLater()
 
 class CredentialsWindow(BaseUI):
-    def __init__(self, ui: GUI):
+    access_token_received = pyqtSignal(str)
+
+    def __init__(self, ui: GUI, err: str = None, loading=False):
         super().__init__()
         self.gui = ui
-        self.layout.setSpacing(40)
+        self.layout.setSpacing(20)
         self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
+        self.err = err
+        self.loading = loading
         self.load_ui()
 
     def load_ui(self):
@@ -1027,16 +1031,36 @@ class CredentialsWindow(BaseUI):
         image_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.add_widget(image_label)
-        self.swap_button = self.add_widget(Button("Sign In With Discord", callback=self.open_login))
 
+        if self.err != None:
+            err_label = self.add_widget(QLabel(self.err))
+            err_label.setObjectName("ErrMessage")
+            err_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            
+        if self.loading:
+            self.layout.addWidget(LoadingSpinner(self), alignment=Qt.AlignmentFlag.AlignCenter)
+        else:
+            self.swap_button = self.add_widget(Button("Sign In With Discord", callback=self.open_login))
+
+        self.access_token_received.connect(self.on_token_received)
+
+    def on_token_received(self, token):
+        self.gui.access_token = token
+        account.login_user(self.gui, err="Failed to login")
+        account.save_token(token)
+    
     def on_load(self):
         self.gui.main_window.setMinimumSize(400, 400)
         self.gui.main_window.adjustSize()
         return super().on_load()
 
     def open_login(self, widget: Button):
-        self.gui.set_window(DiscordLogin(self.gui, redirect=partial(account.check_login_status, self.gui)))
-        self.gui.main_window.setGeometry(QRect(0, 0, 800, 800))
+        login.await_access_token(self)
+        self.err = None
+        self.loading = True
+        self.clear_layout()
+        self.load_ui()
+        print("start login process")
 
 class PurchaseWindow(BaseUI):
     def __init__(self, ui: GUI):
