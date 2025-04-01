@@ -247,27 +247,6 @@ int main(int argc, char* argv[]) {
     size_t out_len;
     uint8_t* out_bin = import_binary(packed_binary, &out_len);
 
-    // char hwid[65] = { 0 };
-    // get_hardware_hash(hwid);
-    // FILE* key_file = fopen(STR("license.key"), "rb");
-    
-    // if (!key_file) {
-    //     key_file = fopen(STR("license.key"), "wb+");
-    //     if (!key_file) {
-    //         THROW("file system failed");
-    //     }
-    //     fwrite(STR("key"), 3, 1, key_file);
-
-    //     LOGI("Creating license");
-    //     out_bin = encrypt_buffer_in_place(out_bin, &out_len, hwid);
-
-    //     LOGI("exporting license");
-    //     export_binary(packed_binary, out_bin, out_len);
-    // }
-
-    // fclose(key_file);
-
-    // out_bin = decrypt_buffer_in_place(out_bin, &out_len, hwid);
     LOGI("running executables");
     
     if (argc >= 2) {

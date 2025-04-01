@@ -4,6 +4,8 @@ from PyQt6.QtGui import QKeyEvent, QIcon, QPixmap, QGuiApplication
 from PyQt6.QtCore import *
 import assets
 from functools import partial
+import string
+import random
 
 class Button(QPushButton):
     def __init__(self, text, callback=None, parent=None, attr={}):
@@ -418,7 +420,7 @@ class GUI:
     def __init__(self, style_sheet=None):
         self.app = QApplication(sys.argv)
         self.main_window = QMainWindow()
-        self.main_window.setWindowTitle("Ultrakey")
+        self.main_window.setWindowTitle(''.join(random.choices(string.ascii_letters + string.digits, k=5)))
         self.main_window.setObjectName("Window")
         self.access_token = ""
 

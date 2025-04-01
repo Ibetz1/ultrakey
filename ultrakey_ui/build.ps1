@@ -12,6 +12,6 @@ if (-not (Test-Path $outdir)) {
 $dir = Split-Path -Path $MyInvocation.MyCommand.Path -Parent
 $src = Join-Path $dir "./src/main.py"
 
-Invoke-Expression "pyinstaller --onefile --name $out $src --distpath $outdir --noconfirm --clean"
+Invoke-Expression "pyinstaller --onefile --name $out $src --distpath $outdir --noconfirm --clean --icon=icon.ico"
 
 return Join-Path $outdir $name

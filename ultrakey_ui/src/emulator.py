@@ -23,6 +23,8 @@ ResetEvent.restype = wintypes.BOOL
 
 EVENT_MODIFY_STATE = 0x0002
 
+RUNNER_NAME = "launcher.exe"
+
 def send_signal(signal_name: str, duration_ms=100):
     event_name = f"Global\\{signal_name}".encode('utf-8')
 
@@ -47,7 +49,7 @@ def send_signal(signal_name: str, duration_ms=100):
 class Emulator:
     def __init__(self):
         if getattr(sys, 'frozen', False):
-            runner_path = os.path.abspath("ultrakey_runner.exe")
+            runner_path = os.path.abspath(RUNNER_NAME)
             runner_dir = os.path.dirname(runner_path)
             print("set base dir", runner_dir)
             os.environ["PATH"] = runner_dir + os.pathsep + os.environ["PATH"]
@@ -58,7 +60,7 @@ class Emulator:
     def start(self, config_path):
         if getattr(sys, 'frozen', False):
             subprocess.Popen(
-                ["ultrakey_runner.exe", "ultrakey_emu.exe", config_path],
+                [RUNNER_NAME, "ultrakey_emu.exe", config_path],
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
             )
         else:

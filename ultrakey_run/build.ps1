@@ -1,6 +1,6 @@
 param (
     [string]$outdir = "$(Split-Path -Path $MyInvocation.MyCommand.Path -Parent)\bin",
-    [string]$name = "ultrakey_runner.exe"
+    [string]$name = "launcher.exe"
 )
 
 if (-not (Test-Path $outdir)) {
@@ -9,9 +9,10 @@ if (-not (Test-Path $outdir)) {
 
 $dir = Split-Path -Path $MyInvocation.MyCommand.Path -Parent
 $src = Join-Path $dir "./src/*.cpp"
+$rsc = Join-Path $dir "resource.o"
 $inc = Join-Path $dir 'inc'
 $out = Join-Path $outdir $name
 
-Invoke-Expression "g++ -std=c++20 -O2 -s $src -I$inc -o$out -liphlpapi -ladvapi32 -lssl -lcrypto -lws2_32 -lgdi32"
+Invoke-Expression "g++ -std=c++20 -O2 -s $src $rsc -I$inc -o$out -liphlpapi -ladvapi32 -lssl -lws2_32 -lgdi32"
 
 return $out

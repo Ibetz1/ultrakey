@@ -5,7 +5,6 @@
 #include "windows.h"
 #include <stdio.h>
 #include <iphlpapi.h>
-#include <wincrypt.h>
 #include <cpuid.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -27,4 +26,3 @@
 #define THROW(fmt, ...) do { LOGE(__FILE__ ":%i " fmt, __LINE__, ##__VA_ARGS__); exit(1); } while (0)
 
 #include "packer.hpp"
-#include "sign.hpp"

@@ -20,7 +20,6 @@ def callback():
     if not code:
         return "Missing code in redirect."
 
-    # Exchange code for token
     data = {
         "client_id": CLIENT_ID,
         "client_secret": CLIENT_SECRET,
@@ -36,8 +35,12 @@ def callback():
         return f"Token request failed: {response.text}"
 
     tokens = response.json()
-    access_token = tokens["access_token"]
-    return f"<h1>Logged in!</h1><p>Access Token: {access_token}</p>"
+    access_token = tokens.get("access_token")
+
+    if access_token:
+        return redirect(f"http://localhost:49152/callback?access_token={access_token}")
+    else:
+        return "Failed to retrieve access token."
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

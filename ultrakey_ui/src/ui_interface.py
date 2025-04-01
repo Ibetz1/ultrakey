@@ -797,7 +797,6 @@ class UltraKeyUI(BaseUI):
 
         self.pixmaps = ui.pixmaps
         self.icons = ui.icons
-        self.gui.main_window.setWindowIcon(self.icons["icon"])
 
         self.load_ui()
         self.script_list.load_scripts()
