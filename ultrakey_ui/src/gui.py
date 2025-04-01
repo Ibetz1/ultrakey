@@ -276,7 +276,6 @@ class Slider(QWidget):
 
     def set_value(self, value):
         self.slider.setValue(int(value))
-        self.update(value)
 
     def update(self, value):
         """Update the label when the slider value changes."""
@@ -284,7 +283,7 @@ class Slider(QWidget):
         self.value_changed.emit(value)
 
         if (callable(self.callback)):
-            self.callback(self.slider)
+            self.callback(self)
 
 class Row(QWidget):
     def __init__(self, parent=None, spacing=10):

@@ -106,6 +106,8 @@ std::unordered_map<std::string, VirtualKey> key_ref_enum = {
     { "MOUSE_RB" , VKEY_MOUSE_RB },
     { "MOUSE_MB" , VKEY_MOUSE_MB },
     { "MOUSE_MW" , VKEY_MOUSE_MW },
+    { "MOUSE", VKEY_MOUSE },
+    { "KEYBOARD", VKEY_KEYBOARD },
 };
 
 std::unordered_map<std::string, ButtonCode> pad_ref_enum = {
@@ -229,6 +231,18 @@ int LuaBindings::lua_block_key(lua_State* L) {
     return 0;
 }
 
+int LuaBindings::lua_toggle_controller(lua_State* L) {
+    if (!lua_isboolean(L, 1)) {
+        return luaL_error(L, "Unvalid type, expecing boolean");
+    }
+
+    bool state = lua_toboolean(L, 1);
+
+    remapper->toggle_controller(state);
+
+    return 0;
+}
+
 int LuaBindings::lua_stick_offset(lua_State* L) {
     float dx = luaL_checknumber(L, 1);
     float dy = luaL_checknumber(L, 2);
@@ -281,6 +295,7 @@ void LuaBindings::register_functions(lua_State* L) {
     lua_register(L, "EventBinding", lua_binding_key);
     lua_register(L, "MoveLStick", lua_stick_offset);
     lua_register(L, "MoveRStick", lua_aim_offset);
+    lua_register(L, "ToggleController", lua_toggle_controller);
 }
 
 void LuaBindings::bind_input_interface(InputInterface* input_itf) {
@@ -305,7 +320,7 @@ LuaScript::LuaScript(const char* file) {
 
     if (luaL_dofile(L, file) != LUA_OK) {
         lua_close(L);
-        THROW("LUA error: %s\n", lua_tostring(L, -1));
+        LOGE("LUA error: %s\n", lua_tostring(L, -1));
     }
 }
 

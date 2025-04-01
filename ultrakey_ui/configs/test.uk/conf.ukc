@@ -3,12 +3,17 @@
   "right_analog_bindings": {},
   "button_bindings": {},
   "toggle_bindings": {},
-  "scripts": [],
+  "scripts": [
+    "E:\\Programming\\ultrakey\\ultrakey_ui\\configs\\test.uk\\test.lua"
+  ],
   "lt_binding": 0,
   "rt_binding": 0,
   "ls_binding": 99,
   "rs_binding": 94,
   "threshold": false,
   "sensitivity": 0.05,
-  "tagged_bindings": {}
+  "tagged_bindings": {},
+  "value_bindings": {
+    "FPS": 0
+  }
 }

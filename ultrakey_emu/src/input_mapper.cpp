@@ -12,7 +12,7 @@ InputRemapper::~InputRemapper() {
     }
 }
 
-#define RING_BUFLEN 8
+#define RING_BUFLEN 18
 InputVector accum[RING_BUFLEN] = { 0 };
 int tick = 0;
 
@@ -138,14 +138,6 @@ void InputRemapper::update() {
         avg.dy += accum[i].dy / (float) RING_BUFLEN;
     }
 
-    // accum.dx /= 2.f;
-    // accum.dy /= 2.f;
-    // if (accum.dx < 10 / (float) S16_lim) accum.dx = 0.f;
-    // if (accum.dy < 10 / (float) S16_lim) accum.dy = 0.f;
-
-    // accum.dx += m_bi_dxy.dx;
-    // accum.dy += m_bi_dxy.dy;
-
     /*
         cycle oscillator
     */
@@ -155,10 +147,10 @@ void InputRemapper::update() {
     /*
         update block
     */
-    itf.block(rt_binding, true);
-    itf.block(lt_binding, true);
-    itf.block(ls_binding, true);
-    itf.block(rs_binding, true);
+    // itf.block(rt_binding, true);
+    // itf.block(lt_binding, true);
+    // itf.block(ls_binding, true);
+    // itf.block(rs_binding, true);
 }
 
 /*
@@ -411,4 +403,8 @@ void InputRemapper::stop_scripts() {
     for (auto script : scripts) {
         script->stop();
     }
+}
+
+void InputRemapper::toggle_controller(bool v) {
+    block_controller = !v;
 }

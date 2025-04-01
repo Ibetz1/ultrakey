@@ -62,6 +62,17 @@ class ConfigContainer(Container):
         self.dropdown.addItems(get_containers(self.config_folder, CONTAINER_EXTENSION))
         self.check_button_status()
 
+    def update_dropdown(self):
+        prev_selected = self.dropdown.currentText()
+
+        container = get_containers(self.config_folder, CONTAINER_EXTENSION)
+
+        self.dropdown.clear()
+        self.dropdown.addItems(container)
+
+        if prev_selected in container:
+            self.dropdown.setCurrentText(prev_selected)
+
     def rename_config(self, widget: Button):
         name, ok = QInputDialog.getText(None, "Enter Name", "Enter New Config Name")
         if ok and name.strip() and self.selected_config != None:
@@ -78,6 +89,7 @@ class ConfigContainer(Container):
 
                     if new_name in new_available:
                         self.dropdown.setCurrentText(new_name)
+
                 except:
                     print("failed to rename file")
 
@@ -124,7 +136,6 @@ class ConfigContainer(Container):
         if self.selected_config == "":
             self.selected_config = None
 
-        print("selected conf", self.selected_config)
         self.check_button_status()
 
     def save_config(self, widget: Button):
@@ -152,7 +163,6 @@ class ConfigContainer(Container):
         self.check_button_status()
 
     def import_config(self, widget: Button):
-        print("import config")
         selector: FolderSelector = FolderSelector()
         path = selector.show_dialog()
 
@@ -208,8 +218,6 @@ class ConfigContainer(Container):
         self.gui.emulator.start(path)
 
     def check_button_status(self, save_en = True):
-        print("curcfg", self.selected_config)
-
         if self.selected_config == None:
             self.dropdown.setDisabled(True)
             self.remove_button.setDisabled(True)
@@ -371,7 +379,7 @@ class StickContainer(Container):
         self.stick_data["rs_binding"] = self.rs_bindings;
 
     def mouse_sensitivity_changed(self, widget: Slider):
-        self.gui.bindings.sensitivity = widget.value() / 1000
+        self.gui.bindings.sensitivity = widget.slider.value() / 1000
 
     def mouse_thres_changed(self, widget: Dropdown):
         self.gui.bindings.threshold = widget.currentIndex() > 0
@@ -398,8 +406,6 @@ class StickContainer(Container):
         self.gui.config_container.check_button_status(save_en=save_en)
 
     def stick_state_changed(self, widget: Dropdown):
-        print(self.gui.bindings.rs_binding)
-
         binding = widget.get_attr("BINDING")
         row = widget.get_attr("ROW")
         state = widget.currentIndex()
@@ -517,9 +523,9 @@ class FlagBindingContainer(Container):
                 1, 
                 icon=self.gui.icons["keyboard"],
                 callback=self.binding_changed,
+                attr={"BINDING": text}
             )
         )
-        binding.set_attr("BINDING", text)
 
         binding.add_widget(label)
         bind_input = binding.add_widget(TextInput())
@@ -542,11 +548,10 @@ class FlagBindingContainer(Container):
 
         binding = self.available_bindings.add_item(Row())
         binding.add_widget(icon)
-        slider = binding.add_widget(Slider(callback=self.value_changed))
+        slider: Slider = binding.add_widget(Slider(callback=self.value_changed))
         slider.slider.setMinimum(minv)
         slider.slider.setMaximum(maxv)
-
-        binding.set_attr("BINDING", text)
+        slider.set_attr("BINDING", text)
 
         binding.add_widget(label)
         label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
@@ -558,63 +563,32 @@ class FlagBindingContainer(Container):
 
     def binding_changed(self, widget: InputBox):
         flagged, unflagged = button_input_validator(self.available_bindings)
+
+        attr = widget.get_attr("BINDING")
+        if attr != None:
+            v = widget.text()
+            for key, val in list(self.gui.bindings.flagged_bindings.items()):
+                if val == attr:
+                    del self.gui.bindings.flagged_bindings[key]
+
+            if v in QT_TO_VIRTUAL_KEY_MAP:
+                self.gui.bindings.flagged_bindings[QT_TO_VIRTUAL_KEY_MAP[v]] = attr
+
+
         save_en = len(flagged) < 1
-
-        self.gui.bindings.flagged_bindings = {}
-
-        for item in self.available_bindings.grid_data:
-            if isinstance(item, Row):
-                attr = item.get_attr("BINDING")
-                if (attr != None and isinstance(item.grid_data[1], InputBox)):
-                    box_data: InputBox = item.grid_data[1]
-                    value = box_data.text()
-                    key_code = QT_TO_VIRTUAL_KEY_MAP.get(value)
-
-                    if key_code != None:
-                        self.gui.bindings.flagged_bindings[key_code] = attr
-        
         self.gui.config_container.check_button_status(save_en=save_en)
 
     def value_changed(self, widget: Slider):
-        self.gui.bindings.value_bindings = {}
-
-        for item in self.available_bindings.grid_data:
-            if isinstance(item, Row):
-                attr = item.get_attr("BINDING")
-                if (attr != None and isinstance(item.grid_data[1], Slider)):
-                    slider: Slider = item.grid_data[1]
-                    v = slider.slider.value()
-
-                    if (attr != None):
-                        self.gui.bindings.value_bindings[attr] = v
-
-    def assign_flags(self, used_flags):
-        flagged_bindings = self.gui.bindings.flagged_bindings
-        value_bindings = self.gui.bindings.value_bindings
-
-        for name, widget in used_flags.items():
-            if name in flagged_bindings.values():
-                key_code = next((k for k, v in flagged_bindings.items() if v == name), None)
-                key_label = VIRTUAL_TO_QT_KEY_MAP.get(int(key_code), None)
-            
-                if (key_label != None) and isinstance(widget, Row):
-                    attr = widget.get_attr("BINDING")
-                    binding_widget = widget.grid_data[1]
-                    if attr != None and isinstance(binding_widget, InputBox):
-                        binding_widget.setText(key_label)
-            
-            if name in value_bindings.keys() and isinstance(widget, Row):
-                attr = widget.get_attr("BINDING")
-                binding_widget = widget.grid_data[1]
-
-                if (attr != None and isinstance(binding_widget, Slider)):
-                    v = value_bindings.get(attr, None)
-                    binding_widget.slider.setValue(v)
-
-        self.binding_changed(None)
-        self.value_changed(None)
+        attr = widget.get_attr("BINDING")
+        if attr != None:
+            val = widget.slider.value()
+            self.gui.bindings.value_bindings[attr] = val
 
     def load_flags(self):
+        for item in self.gui.bindings.scripts:
+            if not os.path.exists(item):
+                self.gui.bindings.scripts.remove(item)
+
         self.available_bindings.clear()
 
         used_flags = {}
@@ -623,28 +597,50 @@ class FlagBindingContainer(Container):
             r"(?P<label>\w+)(?:\s*=\s*(?P<assignment>[^\n]+))?"
         )
 
-        for path in self.gui.bindings.scripts:
-            with open(path) as f:
-                for line in f:
-                    for match in pattern.finditer(line):
-                        groups = match.groupdict()
-                        vtype = 'bind' if groups.get('isbind', None) else 'range'
-                        label = groups['label']
-                        assignment = groups['assignment'].strip() if match['assignment'] else None
-                        lvalue = int(groups['lval']) if groups['lval'] else None
-                        rvalue = int(groups['rval']) if groups['rval'] else None
-                        
-                        if (vtype == "bind" and not label in used_flags):
-                            used_flags[label] = self.binding_row(label)
+        try:
+            # creates widgets
+            for path in self.gui.bindings.scripts:
+                with open(path) as f:
+                    for line in f:
+                        for match in pattern.finditer(line):
+                            groups = match.groupdict()
+                            vtype = 'bind' if groups.get('isbind', None) else 'range'
+                            label = groups['label']
+                            assignment = groups['assignment'].strip() if match['assignment'] else None
+                            lvalue = int(groups['lval']) if groups['lval'] else None
+                            rvalue = int(groups['rval']) if groups['rval'] else None
+                            
+                            if (vtype == "bind" and not label in used_flags):
+                                used_flags[label] = self.binding_row(label)
 
-                        elif (vtype == "range" and not label in used_flags):
-                            used_flags[label] = self.value_row(label, lvalue or 0, rvalue or 100)
-                            if (assignment != None):
-                                val = int(assignment)
+                            elif (vtype == "range" and not label in used_flags):
+                                used_flags[label] = self.value_row(label, lvalue or 0, rvalue or 100)
+                                print(groups)
+                                if (assignment != None):
+                                    val = int(assignment)
+                                else:
+                                    val = 0
                                 if not label in self.gui.bindings.value_bindings:
                                     self.gui.bindings.value_bindings[label] = val
+        except:
+            print("failed to load scripts")
+            self.gui.bindings.scripts = []
+            self.gui.config_container.save_config()
+            return
 
-        self.assign_flags(used_flags)
+        for key, widget in used_flags.items():
+            widget = widget.grid_data[1]
+            if isinstance(widget, Slider):
+                value = self.gui.bindings.value_bindings.get(key, None)
+                if value != None:
+                    widget.set_value(value)
+
+            elif isinstance(widget, InputBox):
+                inverse = {v: k for k, v in self.gui.bindings.flagged_bindings.items()}
+                value = inverse.get(key, None)
+
+                if value != None and int(value) in VIRTUAL_TO_QT_KEY_MAP:
+                    widget.setText(VIRTUAL_TO_QT_KEY_MAP[int(value)])
 
 class ScriptContainer(Container):
     def __init__(self, gui, parent=None):
@@ -659,7 +655,7 @@ class ScriptContainer(Container):
         self.add_button = self.button_row.add_widget(Button("Import", callback=self.import_script))
         self.available_scripts: ScrollableList = self.add_widget(ScrollableList())
 
-    def script_entry(self, name: str) -> Row:
+    def script_entry(self, name: str, checked: bool=False) -> Row:
         container = Row()
 
         conf_container = self.gui.config_container
@@ -669,6 +665,7 @@ class ScriptContainer(Container):
         check_box = QCheckBox()
         container._layout.addWidget(check_box, alignment=Qt.AlignmentFlag.AlignVCenter)
         check_box.stateChanged.connect(lambda state: self.select_script(state, path))
+        check_box.setChecked(checked)
 
         check_box.setChecked(path in self.gui.bindings.scripts)
 
@@ -697,6 +694,10 @@ class ScriptContainer(Container):
 
             (new_path, _) = get_new_file_name(config, name.strip(), SCRIPT_EXTENSION)
 
+            if path in self.gui.bindings.scripts:
+                self.gui.bindings.scripts.remove(path)
+                self.gui.bindings.scripts.append(new_path)
+
             try:
                 os.rename(path, new_path)
             except:
@@ -706,6 +707,9 @@ class ScriptContainer(Container):
 
     def delete_script(self, path, widget: Button):
         try:
+            if path in self.gui.bindings.scripts:
+                self.gui.bindings.scripts.remove(path)
+
             os.remove(path)
         except:
             print("failed to rename")
@@ -713,6 +717,9 @@ class ScriptContainer(Container):
         self.load_scripts()
 
     def add_script(self, widget: Button):
+        if self.gui.config_container.selected_config == None:
+            return
+
         name, ok = QInputDialog.getText(None, "Enter Name", "Enter New Config Name")
         if ok and name.strip():
             conf_container = self.gui.config_container
@@ -732,23 +739,35 @@ class ScriptContainer(Container):
         self.available_scripts.clear()
 
         conf_container = self.gui.config_container
+
+        if conf_container.selected_config == None:
+            return
+
         config = os.path.join(conf_container.config_folder, conf_container.selected_config)
         scripts: list = get_containers(config, "lua")
 
         for script in scripts:
-            self.available_scripts.add_item(self.script_entry(script))
+            self.available_scripts.add_item(self.script_entry(script, checked=script in self.gui.bindings.scripts))
 
     def select_script(self, state, path):
-        if state > 0:
-            self.gui.bindings.scripts.append(path)
-        else:
-            self.gui.bindings.scripts.remove(path)
+        try:
+            if state > 0:
+                self.gui.bindings.scripts.append(path)
+            else:
+                self.gui.bindings.scripts.remove(path)
 
-        self.gui.bindings.scripts = list(set(self.gui.bindings.scripts))
+            self.gui.bindings.scripts = list(set(self.gui.bindings.scripts))
 
-        self.gui.flag_bindings.load_flags()
+            self.gui.flag_bindings.load_flags()
+        except:
+            self.gui.bindings.scripts = []
+            self.gui.config_container.save_config()
+            print("failed to select script")
 
     def import_script(self, widget: Button):
+        if self.gui.config_container.selected_config == None:
+            return
+
         selector: FolderSelector = FileSelector(extension="*.lua")
         path = selector.show_dialog()
 
@@ -803,7 +822,7 @@ class UltraKeyUI(BaseUI):
         image_label.setPixmap(pixmap)
         image_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         image_label.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        
+
         self.add_widget(self.config_container)
 
         self.tabs: QTabWidget = self.add_widget(QTabWidget())
@@ -823,12 +842,29 @@ class UltraKeyUI(BaseUI):
         self.script_row._layout.addWidget(self.flag_bindings, stretch=0)
         self.script_row._layout.addWidget(self.script_list, stretch=0)
 
+        self.driver_row = Row()
+        self.driver_container = self.driver_row.add_widget(Container(title="Drivers"))
+        self.driver_container.add_widget(Button("Install Drivers", callback=self.driver_loader))
+        self.driver_container.add_widget(Button("Uninstall Drivers", callback=self.driver_remover))
+        self.driver_container.add_widget(Button("Fix Drivers", callback=self.driver_fixer))
+
         self.tabs.addTab(self.controller_row, "Controller")
         self.tabs.addTab(self.script_row, "Scripts")
+        self.tabs.addTab(self.driver_row, "Drivers")
+
+    def driver_loader(self, widget: Button):
+        os.system("start powershell.exe ./drivers/install.ps1")
+
+    def driver_fixer(self, widget: Button):
+        os.system("start powershell.exe ./drivers/fix.ps1")
+
+    def driver_remover(self, widget: Button):
+        os.system("start powershell.exe ./drivers/uninstall.ps1")
 
     def file_watchdog(self, event: FileModifiedEvent):
         if self.config_container.selected_config and self.config_container.selected_config in event.src_path:
             QTimer.singleShot(0, self.map_bindings_ui)
+            QTimer.singleShot(0, self.config_container.update_dropdown)
 
     def map_bindings_ui(self):
         for data in [
@@ -903,24 +939,36 @@ class UltraKeyUI(BaseUI):
         self.script_list.load_scripts()
         self.flag_bindings.load_flags()
 
-class DiscordLogin(QWebEngineView):
+class DiscordLogin(QWidget):
     def __init__(self, ui: GUI, redirect=None):
         super().__init__()
         self.gui = ui
         self.redirect = redirect
+
+        self.browser = QWebEngineView()
+        self.url_bar = QLineEdit()
+        self.url_bar.setReadOnly(True)
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(0)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.url_bar)
+        layout.addWidget(self.browser)
+
         self.load_ui()
 
     def load_ui(self):
-        self.settings().setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
-        self.settings().setAttribute(QWebEngineSettings.WebAttribute.LocalStorageEnabled, True)
-        self.settings().setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, True)
-        self.settings().setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
-        self.page().profile().setHttpUserAgent(
+        settings = self.browser.settings()
+        settings.setAttribute(QWebEngineSettings.WebAttribute.JavascriptEnabled, True)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.LocalStorageEnabled, True)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.PluginsEnabled, True)
+        settings.setAttribute(QWebEngineSettings.WebAttribute.FullScreenSupportEnabled, True)
+
+        self.browser.page().profile().setHttpUserAgent(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
             "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         )
 
-        # Discord OAuth2 settings
         client_id = '1353490529660309524'
         redirect_uri = urllib.parse.quote(assets.REDIRECT_URI, safe='')
         scope = 'identify+guilds+guilds.members.read'
@@ -934,16 +982,16 @@ class DiscordLogin(QWebEngineView):
             f"&scope={scope}"
         )
 
-        self.urlChanged.connect(self.on_url_changed)
-        self.setUrl(QUrl(auth_url))
+        self.browser.urlChanged.connect(self.on_url_changed)
+        self.browser.setUrl(QUrl(auth_url))
+        self.url_bar.setText(auth_url)
 
     def on_url_changed(self, url: QUrl):
-        url = url.toString()
+        url_str = url.toString()
+        self.url_bar.setText(url_str)
 
-        print("---------------", url)
-
-        if ("access_token" in url):
-            parsed_url = urlparse(url)
+        if "access_token" in url_str:
+            parsed_url = urlparse(url_str)
             fragment = parsed_url.fragment
             params = parse_qs(fragment)
             access_token = params.get('access_token', [None])[0]
@@ -952,16 +1000,16 @@ class DiscordLogin(QWebEngineView):
             if callable(self.redirect):
                 self.redirect(access_token)
 
-        if ("access_denied" in url):
+        elif "access_denied" in url_str:
             self.gui.set_window(CredentialsWindow(self.gui))
 
     def cleanup(self):
         try:
-            self.urlChanged.disconnect()
+            self.browser.urlChanged.disconnect()
         except TypeError:
             pass
 
-        self.page().deleteLater()
+        self.browser.page().deleteLater()
         self.deleteLater()
 
 class CredentialsWindow(BaseUI):
@@ -974,7 +1022,6 @@ class CredentialsWindow(BaseUI):
         self.load_ui()
 
     def load_ui(self):
-        # self.add_widget(QLabel("Sign in with discord"))
         image_label = QLabel()
         pixmap = self.gui.pixmaps["signin"].scaledToWidth(250, Qt.TransformationMode.SmoothTransformation)
         image_label.setPixmap(pixmap)

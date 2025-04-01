@@ -20,6 +20,8 @@ struct LuaBindings {
     static int lua_press_button(lua_State* L);
 
     static int lua_block_key(lua_State* L);
+
+    static int lua_toggle_controller(lua_State* L);
     
     static int lua_release_key(lua_State* L);
     

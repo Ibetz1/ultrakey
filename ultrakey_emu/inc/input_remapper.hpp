@@ -11,6 +11,7 @@ struct InputRemapper {
     std::vector<std::string> script_paths;
     std::vector<LuaEnvironment*> scripts;
     int internal_clock = 0;
+    bool block_controller = false;
 
     InputVector analog_offset = { 0 };
     InputVector aim_offset = { 0 };
@@ -109,6 +110,8 @@ struct InputRemapper {
 
     void print();
     
+    void toggle_controller(bool v);
+
     // toggle control
     void bind_hold_toggle(VirtualKey binding);
     void bind_hold_untoggle(VirtualKey binding);

@@ -105,15 +105,13 @@ uint8_t *encrypt_buffer_in_place(uint8_t *buffer, size_t *length, const char *hw
     sha256_hwid_key(hwid, key);
     RAND_bytes(iv, sizeof(iv));
 
-    // Prepare output buffer: IV + encrypted data (same length as input, plus IV)
     size_t original_len = *length;
-    size_t max_out = 16 + original_len + 16; // 16 for IV + possible overhead
+    size_t max_out = 16 + original_len + 16;
     uint8_t *out_buf = (uint8_t *)realloc(buffer, max_out);
     if (!out_buf) return NULL;
 
-    // Move original data forward to make room for IV at the start
     memmove(out_buf + 16, out_buf, original_len);
-    memcpy(out_buf, iv, 16); // write IV at the beginning
+    memcpy(out_buf, iv, 16);
 
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
     EVP_EncryptInit_ex(ctx, EVP_aes_256_ctr(), NULL, key, iv);

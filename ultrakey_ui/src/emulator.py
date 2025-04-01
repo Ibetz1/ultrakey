@@ -3,9 +3,7 @@ from ctypes import wintypes
 import os
 import subprocess
 import sys
-
-PROCESS_NAME = "ukemut.exe"
-
+import time
 import ctypes
 from ctypes import wintypes
 
@@ -19,9 +17,13 @@ SetEvent = kernel32.SetEvent
 SetEvent.argtypes = [wintypes.HANDLE]
 SetEvent.restype = wintypes.BOOL
 
+ResetEvent = kernel32.ResetEvent
+ResetEvent.argtypes = [wintypes.HANDLE]
+ResetEvent.restype = wintypes.BOOL
+
 EVENT_MODIFY_STATE = 0x0002
 
-def send_signal(signal_name: str):
+def send_signal(signal_name: str, duration_ms=100):
     event_name = f"Global\\{signal_name}".encode('utf-8')
 
     try:
@@ -33,8 +35,14 @@ def send_signal(signal_name: str):
             raise ctypes.WinError(ctypes.get_last_error())
 
         print(f"[Python] Signal '{signal_name}' sent.")
-    except:
-        print("event send failed")
+
+        time.sleep(duration_ms / 1000.0)
+
+        if not ResetEvent(hEvent):
+            raise ctypes.WinError(ctypes.get_last_error())
+        print(f"[Python] Signal '{signal_name}' reset.")
+    except Exception as e:
+        print("event send failed:", e)
 
 class Emulator:
     def __init__(self):

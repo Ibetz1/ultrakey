@@ -31,10 +31,8 @@ int InputInterface::handle_keyboard(const InterceptionKeyStroke& keystroke) {
 }
 
 int InputInterface::handle_mouse(const InterceptionMouseStroke &mouseStroke) {
-    int ret = 0;
-
     // pthread_mutex_lock(&rwlock);
-    ret = key_block[VKEY_MOUSE];
+    int ret = key_block[VKEY_MOUSE];
 
     if (mouse_output != nullptr) {
         if (sense > 0) {

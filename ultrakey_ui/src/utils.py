@@ -74,7 +74,10 @@ def toggle_button_row(row: Row, state: bool):
             item.toggle_disabled(state)
 
 def get_containers(path, ext):
-    return [item for item in os.listdir(path) if ext in item]
+    try:
+        return [item for item in os.listdir(path) if ext in item]
+    except:
+        return []
 
 def get_new_file_name(path, name, ext):
     name.replace(ext, "")

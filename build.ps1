@@ -20,6 +20,7 @@ $assets = Join-Path $dir 'ultrakey_ui/assets'
 $configs = Join-Path $dir 'ultrakey_ui/configs'
 $drivers = Join-Path $dir 'drivers'
 $lib = Join-Path $dir 'lib'
+$zipped = Join-Path $dir 'ultrakey.zip'
 
 Copy-Item -Path "$assets" -Destination $out -Recurse
 Copy-Item -Path "$configs" -Destination $out -Recurse
@@ -35,3 +36,9 @@ Write-Host "finished compiling, starting packing sequence: $runner $emu_path $ui
 Push-Location "$out"
 Invoke-Expression "$runner pack $emu_path $ui_path"
 Pop-Location
+
+if (Test-Path $zipped) {
+    Remove-Item $zipped
+}
+
+Compress-Archive -Path "$out" -DestinationPath "$zipped"

@@ -34,7 +34,7 @@ Gamepad::~Gamepad() {
 }
 
 void Gamepad::update() {
-    if (bindings.do_emulate()) {
+    if (bindings.do_emulate() && !bindings.block_controller) {
         OutputVector lstick_output = bindings.get_lstick();
         OutputVector rstick_output = bindings.get_rstick();
 

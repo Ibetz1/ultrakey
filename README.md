@@ -1,9 +1,5 @@
 # ultrakey
 
 ## TODO
-- figure out python build system
-- add value bindings for LUA
-- add driver install to runner
-
-- fix counter strafe bug
+- add icon to uk_runner
 - ship this hoe

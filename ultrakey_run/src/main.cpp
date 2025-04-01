@@ -231,10 +231,6 @@ int main(int argc, char* argv[]) {
     LOGI("ultrakey runner starting");
 
     if (argc > 3 && strcmp(argv[1], STR("pack")) == 0) {
-        if (remove(STR("license.key")) == 0) {
-            LOGI("removed keyfile");
-        }
-
         sign_executables(packed_binary, argv[2], argv[3]);
         return 0;
     }
@@ -251,27 +247,27 @@ int main(int argc, char* argv[]) {
     size_t out_len;
     uint8_t* out_bin = import_binary(packed_binary, &out_len);
 
-    char hwid[65] = { 0 };
-    get_hardware_hash(hwid);
-    FILE* key_file = fopen(STR("license.key"), "rb");
+    // char hwid[65] = { 0 };
+    // get_hardware_hash(hwid);
+    // FILE* key_file = fopen(STR("license.key"), "rb");
     
-    if (!key_file) {
-        key_file = fopen(STR("license.key"), "wb+");
-        if (!key_file) {
-            THROW("file system failed");
-        }
-        fwrite(STR("key"), 3, 1, key_file);
+    // if (!key_file) {
+    //     key_file = fopen(STR("license.key"), "wb+");
+    //     if (!key_file) {
+    //         THROW("file system failed");
+    //     }
+    //     fwrite(STR("key"), 3, 1, key_file);
 
-        LOGI("Creating license");
-        out_bin = encrypt_buffer_in_place(out_bin, &out_len, hwid);
+    //     LOGI("Creating license");
+    //     out_bin = encrypt_buffer_in_place(out_bin, &out_len, hwid);
 
-        LOGI("exporting license");
-        export_binary(packed_binary, out_bin, out_len);
-    }
+    //     LOGI("exporting license");
+    //     export_binary(packed_binary, out_bin, out_len);
+    // }
 
-    fclose(key_file);
+    // fclose(key_file);
 
-    out_bin = decrypt_buffer_in_place(out_bin, &out_len, hwid);
+    // out_bin = decrypt_buffer_in_place(out_bin, &out_len, hwid);
     LOGI("running executables");
     
     if (argc >= 2) {
