@@ -17,7 +17,7 @@ $packer_obf_emu_name = "ultrakey_emu.exe"
 # paths
 $dir = Split-Path -Path $MyInvocation.MyCommand.Path -Parent
 $assets = Join-Path $dir 'ultrakey_ui/assets'
-$configs = Join-Path $dir 'ultrakey_ui/configs'
+$configs = Join-Path $dir 'configs'
 $drivers = Join-Path $dir 'drivers'
 $lib = Join-Path $dir 'lib'
 $zipped = Join-Path $dir 'ultrakey.zip'

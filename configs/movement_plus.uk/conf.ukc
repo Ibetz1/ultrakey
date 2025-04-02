@@ -1,0 +1,27 @@
+{
+  "left_analog_bindings": {},
+  "right_analog_bindings": {},
+  "button_bindings": {},
+  "toggle_bindings": {},
+  "scripts": [
+    "C:\\Users\\Ianbe.IANSPC\\Desktop\\bin\\configs\\movement_plus.uk\\superglide.lua",
+    "C:\\Users\\Ianbe.IANSPC\\Desktop\\bin\\configs\\movement_plus.uk\\strafe.lua",
+    "C:\\Users\\Ianbe.IANSPC\\Desktop\\bin\\configs\\movement_plus.uk\\mouse_jitter.lua"
+  ],
+  "lt_binding": 0,
+  "rt_binding": 0,
+  "ls_binding": 0,
+  "rs_binding": 0,
+  "threshold": false,
+  "sensitivity": 0.05,
+  "tagged_bindings": {
+    "46": "CROUCH",
+    "37": "SECOND_CROUCH",
+    "66": "LOW_BINDING",
+    "67": "HIGH_BINDING",
+    "42": "SUPERGLIDE"
+  },
+  "value_bindings": {
+    "JITTER_STRENGTH": 8
+  }
+}
