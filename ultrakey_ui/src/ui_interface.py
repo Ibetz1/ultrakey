@@ -341,17 +341,24 @@ class StickContainer(Container):
         slider_row.add_widget(QLabel("Threshold"))
         self.threshold_mode = slider_row.add_widget(Dropdown(["OFF", "AUTO"], callback=self.mouse_thres_changed))
 
-        icons = [
+        icons_left = [
             self.gui.icons["left_joystick_up"], 
             self.gui.icons["left_joystick_down"], 
             self.gui.icons["left_joystick_left"], 
             self.gui.icons["left_joystick_right"]
         ]
 
+        icons_right = [
+            self.gui.icons["right_joystick_up"], 
+            self.gui.icons["right_joystick_down"], 
+            self.gui.icons["right_joystick_left"], 
+            self.gui.icons["right_joystick_right"]
+        ]
+
         self.stick_data = {}
 
         self.ls_row = self.add_widget(stick_input_row(4, 
-            icons,
+            icons_left,
             attributes=[{"DIR": [0, 1]}, {"DIR": [0, -1]}, {"DIR": [-1, 0]}, {"DIR":[1, 0]}],
             attr={"TABLE": "left_analog_bindings"},
             callback=self.stick_changed
@@ -363,7 +370,7 @@ class StickContainer(Container):
         )
         
         self.rs_row = self.add_widget(stick_input_row(4, 
-            icons=icons,
+            icons=icons_right,
             attributes=[{"DIR": [0, 1]}, {"DIR": [0, -1]}, {"DIR": [-1, 0]}, {"DIR":[1, 0]}],
             attr={"TABLE": "right_analog_bindings"},
             callback=self.stick_changed
