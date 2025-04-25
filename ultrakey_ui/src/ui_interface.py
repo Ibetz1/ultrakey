@@ -137,8 +137,6 @@ class ConfigContainer(Container):
         if self.selected_config == "":
             self.selected_config = None
 
-        self.check_button_status()
-
     def save_config(self, widget: Button):
         if self.selected_config == None:
             self.new_config(widget)
@@ -741,7 +739,31 @@ class ScriptContainer(Container):
 
         self.load_scripts()
 
+    def sanitize_scripts(self):
+        print("sanitize")
+
+        conf_container = self.gui.config_container
+        config = os.path.join(conf_container.config_folder, conf_container.selected_config)
+        scripts: list = get_containers(config, "lua")
+
+        sanitized_scripts = []
+        for script in self.gui.bindings.scripts:
+            script_name = os.path.basename(script)
+            if script_name in scripts:
+                new_path = os.path.join(config, script_name)
+                sanitized_scripts.append(new_path)
+
+        did_sanitize = sanitized_scripts != self.gui.bindings.scripts
+
+        print(did_sanitize)
+        
+        if did_sanitize:
+            self.gui.bindings.scripts = sanitized_scripts
+            self.gui.config_container.save_config(self)
+
     def load_scripts(self):
+        self.sanitize_scripts()
+
         self.scripts = {}
 
         self.available_scripts.clear()
@@ -943,6 +965,7 @@ class UltraKeyUI(BaseUI):
         else:
             threshold.setCurrentIndex(0)
 
+        # self.script_list.sanitize_scripts()
         self.script_list.load_scripts()
         self.flag_bindings.load_flags()
 
