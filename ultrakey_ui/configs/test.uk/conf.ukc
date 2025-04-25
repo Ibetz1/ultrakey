@@ -4,7 +4,7 @@
   "button_bindings": {},
   "toggle_bindings": {},
   "scripts": [
-    "E:\\Programming\\ultrakey\\ultrakey_ui\\configs\\test.uk\\test.lua"
+    "E:\\Programming\\ultrakey\\ultrakey_ui\\configs\\test.uk\\auto_loot.lua"
   ],
   "lt_binding": 0,
   "rt_binding": 0,
@@ -12,8 +12,10 @@
   "rs_binding": 94,
   "threshold": false,
   "sensitivity": 0.05,
-  "tagged_bindings": {},
+  "tagged_bindings": {
+    "18": "LOOTING_BIND"
+  },
   "value_bindings": {
-    "FPS": 0
+    "SPAM_AFTER": 50
   }
 }

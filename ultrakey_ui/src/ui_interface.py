@@ -688,7 +688,7 @@ class ScriptContainer(Container):
     
     def open_script(self, path, widget: Button):
         try:
-            os.system(f"code {path}")
+            os.system(f"code \"{path}\"")
         except:
             print("failed to open script, please get VS code")
     
@@ -743,6 +743,9 @@ class ScriptContainer(Container):
         print("sanitize")
 
         conf_container = self.gui.config_container
+        if (conf_container.selected_config == None):
+            return
+
         config = os.path.join(conf_container.config_folder, conf_container.selected_config)
         scripts: list = get_containers(config, "lua")
 

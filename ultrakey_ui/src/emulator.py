@@ -64,6 +64,6 @@ class Emulator:
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
             )
         else:
-            os.system(f"start ./emulator/ultrakey_emu.exe {config_path}")
+            os.system(f"start ./emulator/ultrakey_emu.exe \"{config_path}\"")
 
         self.stop()
