@@ -7,7 +7,7 @@ struct InputInterface {
     InterceptionContext context = 0;
     InterceptionDevice device = 0;
     InterceptionStroke stroke = { 0 };
-    InputVector* mouse_output = nullptr;
+    VecF32* mouse_output = nullptr;
     bool run_main_loop = false;
     volatile bool key_record[VKEY_MAX] = { 0 };
     volatile bool key_block[VKEY_MAX] = { 0 };
@@ -33,7 +33,7 @@ struct InputInterface {
 
     void stop();
 
-    void bind_mouse_output(InputVector* binding);
+    void bind_mouse_output(VecF32* binding);
 
     bool key_down(VirtualKey key) const;
 

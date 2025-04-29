@@ -36,13 +36,10 @@ def send_signal(signal_name: str, duration_ms=100):
         if not SetEvent(hEvent):
             raise ctypes.WinError(ctypes.get_last_error())
 
-        print(f"[Python] Signal '{signal_name}' sent.")
-
         time.sleep(duration_ms / 1000.0)
 
         if not ResetEvent(hEvent):
             raise ctypes.WinError(ctypes.get_last_error())
-        print(f"[Python] Signal '{signal_name}' reset.")
     except Exception as e:
         print("event send failed:", e)
 

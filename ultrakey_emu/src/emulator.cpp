@@ -24,7 +24,7 @@ void Emulator::start() {
 
     using clock = std::chrono::high_resolution_clock;
 
-    const int target_fps = 400;
+    const int target_fps = 600;
     const auto frame_duration = std::chrono::microseconds(1000000 / target_fps);
 
     int frame_count = 0;
@@ -68,9 +68,9 @@ void Emulator::load_defaults() {
     input_mapper.bind_left_analog(VKEY_S, {0, -1});
     input_mapper.bind_left_analog(VKEY_D, {1,  0});
 
-    // input_mapper.bind_lt(VKEY_MOUSE_RB);
-    // input_mapper.bind_rt(VKEY_MOUSE_LB);
-    // input_mapper.set_sensitivity(0.08f);
+    input_mapper.bind_lt(VKEY_MOUSE_RB);
+    input_mapper.bind_rt(VKEY_MOUSE_LB);
+    input_mapper.set_sensitivity(0.1f);
 
     // input_mapper.add_script("./scripts/test.lua");
 

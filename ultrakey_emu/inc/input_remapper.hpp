@@ -4,23 +4,26 @@
 struct InputRemapper {
 
     // normalized data
-    std::unordered_map<VirtualKey, InputVector> left_analog_bindings;
-    std::unordered_map<VirtualKey, InputVector> right_analog_bindings;
+    std::unordered_map<VirtualKey, VecF32> left_analog_bindings;
+    std::unordered_map<VirtualKey, VecF32> right_analog_bindings;
     std::unordered_map<VirtualKey, ButtonCode> button_bindings;
     std::unordered_map<VirtualKey, ToggleMode> toggle_bindings;
     std::vector<std::string> script_paths;
     std::vector<LuaEnvironment*> scripts;
     int internal_clock = 0;
     bool block_controller = false;
+    bool disable_passthrough = false;
+    bool boost_aim_assist = false;
+    bool roller_keepalive = false;
 
-    InputVector analog_offset = { 0 };
-    InputVector aim_offset = { 0 };
-    OutputVector l_n_dxy = { 0 };
-    OutputVector r_n_dxy = { 0 };
+    VecF32 analog_offset = { 0 };
+    VecF32 aim_offset = { 0 };
+    VecShort l_n_dxy = { 0 };
+    VecShort r_n_dxy = { 0 };
 
-    OutputVector m_b_dxy = { 0 };
-    OutputVector mouse_converstion = { 0 };
-    InputVector m_bi_dxy = { 0 };
+    VecShort m_b_dxy = { 0 };
+    VecShort mouse_converstion = { 0 };
+    VecF32 m_bi_dxy = { 0 };
 
     // switch data (toggles between 0 and 255)
     VirtualKey lt_binding = VKEY_None;
@@ -44,6 +47,10 @@ struct InputRemapper {
 
     void update();
 
+    void update_movement();
+
+    void update_aiming();
+
     void zero();
 
     /*
@@ -51,9 +58,9 @@ struct InputRemapper {
     */
 
     // binds analog keycodes to a normalized vector (typically used for movement)
-    void bind_left_analog(VirtualKey key_code, InputVector dir);
+    void bind_left_analog(VirtualKey key_code, VecF32 dir);
     
-    void bind_right_analog(VirtualKey key_code, InputVector dir);
+    void bind_right_analog(VirtualKey key_code, VecF32 dir);
 
     // binds any enumerated button to any virtual key
     void bind_button(VirtualKey key_code, ButtonCode console_code);
@@ -87,10 +94,10 @@ struct InputRemapper {
     USHORT get_button_outputs() const;
 
     // returns lstick bound output vector
-    OutputVector get_lstick() const;
+    VecShort get_lstick() const;
 
     // returns rstick bound output vector
-    OutputVector get_rstick() const;
+    VecShort get_rstick() const;
 
     /*
         encoding

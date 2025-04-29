@@ -227,6 +227,9 @@ class InputRemapper:
         self.ls_binding: int = VirtualKey.KEY_KEYBOARD.value
         self.rs_binding: int = VirtualKey.KEY_MOUSE.value
         self.threshold: bool = False
+        self.keepalive: bool = False
+        self.stablize: bool = False
+        self.passthrough: bool = False
         self.sensitivity: float = 0.05
 
     def export_bytes(self):
@@ -243,7 +246,10 @@ class InputRemapper:
             "threshold": self.threshold,
             "sensitivity": self.sensitivity,
             "tagged_bindings": self.flagged_bindings,
-            "value_bindings": self.value_bindings
+            "value_bindings": self.value_bindings,
+            "keepalive": self.keepalive,
+            "stabilizer": self.stablize,
+            "passthrough": self.passthrough
         }
         
         json_data = json.dumps(data, indent=2)
@@ -265,6 +271,9 @@ class InputRemapper:
             self.ls_binding = data.get("ls_binding", 0)
             self.rs_binding = data.get("rs_binding", 0)
             self.threshold = data.get("threshold", False)
+            self.passthrough = data.get("passthrough", False)
+            self.stablize = data.get("stabilizer", False)
+            self.keepalive = data.get("keepalive", False)
             self.sensitivity = data.get("sensitivity", 0)
         except:
             print("failed to load cfg data")

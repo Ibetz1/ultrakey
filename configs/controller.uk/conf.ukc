@@ -22,9 +22,7 @@
   "toggle_bindings": {
     "56": 0
   },
-  "scripts": [
-    "C:\\Users\\Ianbe.IANSPC\\Desktop\\bin\\configs\\controller.uk\\controller.lua"
-  ],
+  "scripts": [],
   "lt_binding": 96,
   "rt_binding": 95,
   "ls_binding": 99,
@@ -34,5 +32,10 @@
   "tagged_bindings": {
     "37": "SECOND_CROUCH"
   },
-  "value_bindings": {}
+  "value_bindings": {
+    "SPAM_AFTER": 50
+  },
+  "keepalive": true,
+  "stabilizer": true,
+  "passthrough": true
 }

@@ -331,13 +331,25 @@ class StickContainer(Container):
         self.init_ui()
 
     def init_ui(self):
+        settings_row = self.add_widget(Row())
+
+        settings_row.add_widget(QLabel("Threshold"))
+        self.threshold_mode = settings_row.add_widget(Dropdown(["OFF", "AUTO"], callback=self.mouse_thres_changed))
+
+        settings_row.add_widget(QLabel("Passthrough"))
+        self.passthrough_mode = settings_row.add_widget(Dropdown(["OFF", "ON"], callback=self.passthrough_changed))
+
+        settings_row.add_widget(QLabel("Stabilizer"))
+        self.stabilizer_mode = settings_row.add_widget(Dropdown(["OFF", "ON"], callback=self.stabilizer_changed))
+
+        settings_row.add_widget(QLabel("Keepalive"))
+        self.keepalive_mode = settings_row.add_widget(Dropdown(["OFF", "ON"], callback=self.keepalive_changed))
+
         slider_row = self.add_widget(Row())
         slider_row.add_widget(QLabel("Sensitivity"))
         self.sense_slider = slider_row.add_widget(
             Slider(callback=self.mouse_sensitivity_changed)
         )
-        slider_row.add_widget(QLabel("Threshold"))
-        self.threshold_mode = slider_row.add_widget(Dropdown(["OFF", "AUTO"], callback=self.mouse_thres_changed))
 
         icons_left = [
             self.gui.icons["left_joystick_up"], 
@@ -389,6 +401,15 @@ class StickContainer(Container):
 
     def mouse_thres_changed(self, widget: Dropdown):
         self.gui.bindings.threshold = widget.currentIndex() > 0
+
+    def passthrough_changed(self, widget: Dropdown):
+        self.gui.bindings.passthrough = widget.currentIndex() > 0
+
+    def stabilizer_changed(self, widget: Dropdown):
+        self.gui.bindings.stablize = widget.currentIndex() > 0
+
+    def keepalive_changed(self, widget: Dropdown):
+        self.gui.bindings.keepalive = widget.currentIndex() > 0
 
     def stick_changed(self, widget: InputBox):
         if not isinstance(widget, InputBox):
@@ -740,8 +761,6 @@ class ScriptContainer(Container):
         self.load_scripts()
 
     def sanitize_scripts(self):
-        print("sanitize")
-
         conf_container = self.gui.config_container
         if (conf_container.selected_config == None):
             return
@@ -960,13 +979,16 @@ class UltraKeyUI(BaseUI):
 
         sensitivty: Slider = self.stick_container.sense_slider
         threshold: Dropdown = self.stick_container.threshold_mode
+        keepalive: Dropdown = self.stick_container.keepalive_mode
+        passthrough: Dropdown = self.stick_container.passthrough_mode
+        stabilizer: Dropdown = self.stick_container.stabilizer_mode
 
         sensitivty.set_value(self.bindings.sensitivity * 1000)
 
-        if (self.bindings.threshold):
-            threshold.setCurrentIndex(1)
-        else:
-            threshold.setCurrentIndex(0)
+        threshold.setCurrentIndex(1 if self.bindings.threshold else 0)
+        keepalive.setCurrentIndex(1 if self.bindings.keepalive else 0)
+        passthrough.setCurrentIndex(1 if self.bindings.passthrough else 0)
+        stabilizer.setCurrentIndex(1 if self.bindings.stablize else 0)
 
         # self.script_list.sanitize_scripts()
         self.script_list.load_scripts()

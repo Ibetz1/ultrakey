@@ -1,20 +1,36 @@
 {
-  "left_analog_bindings": {},
+  "left_analog_bindings": {
+    "30": [
+      -1,
+      0
+    ],
+    "32": [
+      1,
+      0
+    ],
+    "31": [
+      0,
+      -1
+    ],
+    "17": [
+      0,
+      1
+    ]
+  },
   "right_analog_bindings": {},
   "button_bindings": {},
-  "toggle_bindings": {},
+  "toggle_bindings": {
+    "56": 0
+  },
   "scripts": [
-    "E:\\Programming\\ultrakey\\ultrakey_ui\\configs\\movement_plus.uk\\superglide.lua",
-    "E:\\Programming\\ultrakey\\ultrakey_ui\\configs\\movement_plus.uk\\mouse_jitter.lua",
-    "E:\\Programming\\ultrakey\\ultrakey_ui\\configs\\movement_plus.uk\\strafe.lua",
-    "E:\\Programming\\ultrakey\\ultrakey_ui\\configs\\movement_plus.uk\\auto_loot.lua"
+    "E:\\Programming\\ultrakey\\ultrakey_ui\\configs\\movement_plus.uk\\controller_jitter.lua"
   ],
-  "lt_binding": 0,
-  "rt_binding": 0,
-  "ls_binding": 0,
-  "rs_binding": 0,
+  "lt_binding": 96,
+  "rt_binding": 95,
+  "ls_binding": 99,
+  "rs_binding": 94,
   "threshold": false,
-  "sensitivity": 0.05,
+  "sensitivity": 0.1,
   "tagged_bindings": {
     "46": "CROUCH",
     "37": "SECOND_CROUCH",
@@ -23,7 +39,10 @@
     "42": "SUPERGLIDE"
   },
   "value_bindings": {
-    "JITTER_STRENGTH": 8,
+    "JITTER_STRENGTH": 12,
     "SPAM_AFTER": 50
-  }
+  },
+  "keepalive": true,
+  "stabilizer": true,
+  "passthrough": true
 }

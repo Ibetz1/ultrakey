@@ -8,6 +8,7 @@ if __name__ == "__main__":
 
     gui.access_token = account.load_token()
     account.login_user(gui)
+    # gui.set_window(UltraKeyUI(gui))
 
     gui.show()
     app.start()

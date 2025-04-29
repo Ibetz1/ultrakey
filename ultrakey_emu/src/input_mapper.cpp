@@ -1,93 +1,165 @@
 #include "main.hpp"
 
-InputRemapper::InputRemapper(InputInterface& itf) : itf(itf) 
+InputRemapper::InputRemapper(InputInterface &itf) : itf(itf)
 {
     itf.bind_mouse_output(&m_bi_dxy);
     bind_click_toggle(VKEY_F10);
 }
 
-InputRemapper::~InputRemapper() {
-    for (auto env : scripts) {
+InputRemapper::~InputRemapper()
+{
+    for (auto env : scripts)
+    {
         delete env;
     }
 }
 
-#define RING_BUFLEN 18
-InputVector accum[RING_BUFLEN] = { 0 };
+#define RING_BUFLEN 14
+VecF32 accum[RING_BUFLEN] = {0};
 int tick = 0;
 
-/*
-    normalized bindings
-*/
-void InputRemapper::update() {
+void InputRemapper::update_aiming()
+{
+    float rad = ((float)tick / (float)RING_BUFLEN) * 2 * M_PI;
+    VecF32 oscillator = {0};
 
-    tick = (tick + 1) % RING_BUFLEN;
+    if (boost_aim_assist)
+    {
+        oscillator.dx = cos(rad);
+        oscillator.dy = sin(rad);
+    }
+
+    accum[tick] = m_bi_dxy;
+
+    VecF32 avg = {0};
+    for (int i = 0; i < RING_BUFLEN; ++i)
+    {
+        avg.dx += accum[i].dx / (float)RING_BUFLEN;
+        avg.dy += accum[i].dy / (float)RING_BUFLEN;
+    }
+
+    constexpr float stab_osc_magnitude = 0.030;
+    m_b_dxy.dx = (short)(fclampf(avg.dx + aim_offset.dx + oscillator.dx * stab_osc_magnitude, -1.f, 1.f) * S16_lim);
+    m_b_dxy.dy = (short)(fclampf(avg.dy + aim_offset.dy + oscillator.dy * stab_osc_magnitude, -1.f, 1.f) * S16_lim);
+}
+
+void InputRemapper::update_movement()
+{
+    constexpr float actv_osc_magnitude = 0.22;
 
     /*
         update movement normals
     */
-    if (ls_binding == VKEY_KEYBOARD) {
-        InputVector normalizedVector = analog_offset;
-        for (auto & [key, vector] : left_analog_bindings) {
-            if (itf.key_down(key)) {
+    if (ls_binding == VKEY_KEYBOARD)
+    {
+        VecF32 normalizedVector = analog_offset;
+        bool pressed = false;
+        for (auto &[key, vector] : left_analog_bindings)
+        {
+            if (itf.key_down(key))
+            {
                 normalizedVector.dx += vector.dx;
                 normalizedVector.dy += vector.dy;
+                pressed = true;
             }
-    
-            itf.block(key, true);
-        }
-    
-        float magnitude = sqrtf(
-            (normalizedVector.dx * normalizedVector.dx) + (normalizedVector.dy * normalizedVector.dy)
-        );
 
-        if (magnitude > 1.f) {
+            itf.block(key, disable_passthrough || itf.key_block[key]);
+        }
+
+        float magnitude = sqrtf(
+            (normalizedVector.dx * normalizedVector.dx) + (normalizedVector.dy * normalizedVector.dy));
+
+        if (magnitude > 1.f)
+        {
             normalizedVector.dx /= magnitude;
             normalizedVector.dy /= magnitude;
         }
-    
-        l_n_dxy.dx = fclampf(normalizedVector.dx, -1.f, 1.f) * S16_lim;
-        l_n_dxy.dy = fclampf(normalizedVector.dy, -1.f, 1.f) * S16_lim;
+
+        l_n_dxy.dx = 0;
+        l_n_dxy.dy = 0;
+
+        if (pressed)
+        {
+            l_n_dxy.dx = fclampf(normalizedVector.dx, -1.f, 1.f) * S16_lim;
+            l_n_dxy.dy = fclampf(normalizedVector.dy, -1.f, 1.f) * S16_lim;
+        }
+        else if (roller_keepalive)
+        {
+            float dir = (tick == 0) ? -1 : (tick == RING_BUFLEN - 1) ? 1
+                                                                     : 0;
+            l_n_dxy.dx = dir * actv_osc_magnitude * S16_lim;
+        }
     }
 
-    if (rs_binding == VKEY_KEYBOARD) {
-        InputVector normalizedVector = analog_offset;
-        for (auto & [key, vector] : right_analog_bindings) {
-            if (itf.key_down(key)) {
+    if (rs_binding == VKEY_KEYBOARD)
+    {
+        VecF32 normalizedVector = analog_offset;
+        bool pressed = false;
+        for (auto &[key, vector] : right_analog_bindings)
+        {
+            if (itf.key_down(key))
+            {
                 normalizedVector.dx += vector.dx;
                 normalizedVector.dy += vector.dy;
+                pressed = true;
             }
-    
-            itf.block(key, true);
-        }
-    
-        float magnitude = sqrtf(
-            (normalizedVector.dx * normalizedVector.dx) + (normalizedVector.dy * normalizedVector.dy)
-        );
 
-        if (magnitude > 1.f) {
+            itf.block(key, disable_passthrough || itf.key_block[key]);
+        }
+
+        float magnitude = sqrtf(
+            (normalizedVector.dx * normalizedVector.dx) + (normalizedVector.dy * normalizedVector.dy));
+
+        if (magnitude > 1.f)
+        {
             normalizedVector.dx /= magnitude;
             normalizedVector.dy /= magnitude;
         }
-    
-        r_n_dxy.dx = fclampf(normalizedVector.dx, -1.f, 1.f) * S16_lim;
-        r_n_dxy.dy = fclampf(normalizedVector.dy, -1.f, 1.f) * S16_lim;
+
+        r_n_dxy.dx = 0;
+        r_n_dxy.dy = 0;
+
+        if (pressed)
+        {
+            r_n_dxy.dx = fclampf(normalizedVector.dx, -1.f, 1.f) * S16_lim;
+            r_n_dxy.dy = fclampf(normalizedVector.dy, -1.f, 1.f) * S16_lim;
+        }
+        else if (roller_keepalive)
+        {
+            float dir = (tick == 0) ? -1 : (tick == RING_BUFLEN - 1) ? 1
+                                                                     : 0;
+            r_n_dxy.dx = dir * actv_osc_magnitude * S16_lim;
+        }
     }
+}
+
+/*
+    normalized bindings
+*/
+void InputRemapper::update()
+{
+    tick = (tick + 1) % RING_BUFLEN;
+
+    update_movement();
+    update_aiming();
 
     /*
         update button bindings
     */
     bool htoggle = true;
-    for (auto & [key, binding] : button_bindings) {
-        if (binding == BCODE_PASS) {
+    for (auto &[key, binding] : button_bindings)
+    {
+        if (binding == BCODE_PASS)
+        {
             continue;
         }
 
         button_presses &= ~binding;
 
-        if (itf.key_down(key)) {
+        if (itf.key_down(key))
+        {
             button_presses |= binding;
-            itf.block(key, true);
+            itf.block(key, disable_passthrough || itf.key_block[key]);
         }
     }
 
@@ -97,25 +169,32 @@ void InputRemapper::update() {
     intercept_held = false;
     untoggle_mask = false;
     bool single_press_happened = false;
-    for (auto [key, mode] : toggle_bindings) {
+    for (auto [key, mode] : toggle_bindings)
+    {
         bool key_down = itf.key_down(key);
 
-        if (mode == T_MODE_SINGLE_PRESS && key_down) {
-            if (!did_toggle_emu) {
+        if (mode == T_MODE_SINGLE_PRESS && key_down)
+        {
+            if (!did_toggle_emu)
+            {
                 intercept_toggled = !intercept_toggled;
             }
             single_press_happened = true;
             break;
         }
 
-        if (mode == T_MODE_HOLD) {
-            if (!intercept_held && key_down) {
+        if (mode == T_MODE_HOLD)
+        {
+            if (!intercept_held && key_down)
+            {
                 intercept_held = true;
             }
         }
 
-        if (mode == T_MODE_HOLD_UNTOGGLE && key_down) {
-            if (!untoggle_mask && key_down) {
+        if (mode == T_MODE_HOLD_UNTOGGLE && key_down)
+        {
+            if (!untoggle_mask && key_down)
+            {
                 untoggle_mask = true;
             }
         }
@@ -125,38 +204,26 @@ void InputRemapper::update() {
     itf.toggle_intercept = (intercept_held || intercept_toggled) && !untoggle_mask;
     bool after = itf.toggle_intercept;
     did_toggle_emu = single_press_happened;
-    
-    if (before != after) {
+
+    if (before != after)
+    {
         LOGI("toggled ultrakey state");
     }
-
-    accum[tick] = m_bi_dxy;
-
-    InputVector avg = { 0 };
-    for (int i = 0; i < RING_BUFLEN; ++i) {
-        avg.dx += accum[i].dx / (float) RING_BUFLEN;
-        avg.dy += accum[i].dy / (float) RING_BUFLEN;
-    }
-
-    /*
-        cycle oscillator
-    */
-    m_b_dxy.dx = (short) (fclampf(avg.dx + aim_offset.dx, -1.f, 1.f) * S16_lim);
-    m_b_dxy.dy = (short) (fclampf(avg.dy + aim_offset.dy, -1.f, 1.f) * S16_lim);
 
     /*
         update block
     */
-    // itf.block(rt_binding, true);
-    // itf.block(lt_binding, true);
-    // itf.block(ls_binding, true);
-    // itf.block(rs_binding, true);
+    itf.block(rt_binding, disable_passthrough);
+    itf.block(lt_binding, disable_passthrough);
+    itf.block(ls_binding, disable_passthrough);
+    itf.block(rs_binding, disable_passthrough);
 }
 
 /*
     zero input mapper (basically a reset state)
 */
-void InputRemapper::zero() {
+void InputRemapper::zero()
+{
     m_bi_dxy.dx = 0.f;
     m_bi_dxy.dy = 0.f;
 }
@@ -164,101 +231,125 @@ void InputRemapper::zero() {
 /*
     trigger bindings
 */
-void InputRemapper::bind_left_analog(VirtualKey key_code, InputVector dir) {
+void InputRemapper::bind_left_analog(VirtualKey key_code, VecF32 dir)
+{
     left_analog_bindings.insert({key_code, dir});
 }
 
-void InputRemapper::bind_right_analog(VirtualKey key_code, InputVector dir) {
+void InputRemapper::bind_right_analog(VirtualKey key_code, VecF32 dir)
+{
     right_analog_bindings.insert({key_code, dir});
 }
 
-void InputRemapper::bind_button(VirtualKey key_code, ButtonCode console_code) {
+void InputRemapper::bind_button(VirtualKey key_code, ButtonCode console_code)
+{
     button_bindings.insert({key_code, console_code});
 }
 
-void InputRemapper::bind_ls(VirtualKey binding) {
+void InputRemapper::bind_ls(VirtualKey binding)
+{
     ls_binding = binding;
 }
 
-void InputRemapper::bind_rs(VirtualKey binding) {
+void InputRemapper::bind_rs(VirtualKey binding)
+{
     rs_binding = binding;
 }
 
-void InputRemapper::bind_lt(VirtualKey binding) {
+void InputRemapper::bind_lt(VirtualKey binding)
+{
     lt_binding = binding;
 }
 
-void InputRemapper::bind_rt(VirtualKey binding) {
+void InputRemapper::bind_rt(VirtualKey binding)
+{
     rt_binding = binding;
 }
 
 /*
     trigger getters
 */
-BYTE InputRemapper::get_lt() const {
-    return (BYTE) (itf.key_down(lt_binding) * 255);
+BYTE InputRemapper::get_lt() const
+{
+    return (BYTE)(itf.key_down(lt_binding) * 255);
 }
 
-BYTE InputRemapper::get_rt() const {
-    return (BYTE) (itf.key_down(rt_binding) * 255);
+BYTE InputRemapper::get_rt() const
+{
+    return (BYTE)(itf.key_down(rt_binding) * 255);
 }
 
-USHORT InputRemapper::get_button_outputs() const {
+USHORT InputRemapper::get_button_outputs() const
+{
     return button_presses;
 }
 
-void InputRemapper::press_button(ButtonCode button) {
+void InputRemapper::press_button(ButtonCode button)
+{
     button_presses |= button;
 }
 
-OutputVector InputRemapper::get_lstick() const {
-    if (ls_binding == VKEY_MOUSE) {
+VecShort InputRemapper::get_lstick() const
+{
+    if (ls_binding == VKEY_MOUSE)
+    {
         return m_b_dxy;
     }
 
-    if (ls_binding == VKEY_KEYBOARD) {
+    if (ls_binding == VKEY_KEYBOARD)
+    {
         return l_n_dxy;
     }
 
-    return { 0 };
+    return {0};
 }
 
-OutputVector InputRemapper::get_rstick() const {
-    if (rs_binding == VKEY_MOUSE) {
+VecShort InputRemapper::get_rstick() const
+{
+    if (rs_binding == VKEY_MOUSE)
+    {
         return m_b_dxy;
     }
 
-    if (rs_binding == VKEY_KEYBOARD) {
+    if (rs_binding == VKEY_KEYBOARD)
+    {
         return r_n_dxy;
     }
 
-    return { 0 };
+    return {0};
 }
 
-json InputRemapper::export_bytes() const {
+json InputRemapper::export_bytes() const
+{
     json j;
 
-    for (auto & [key, dir] : left_analog_bindings) {
+    for (auto &[key, dir] : left_analog_bindings)
+    {
         j["left_analog_bindings"][std::to_string(key)] = {dir.dx, dir.dy};
     }
 
-    for (auto & [key, dir] : right_analog_bindings) {
+    for (auto &[key, dir] : right_analog_bindings)
+    {
         j["right_analog_bindings"][std::to_string(key)] = {dir.dx, dir.dy};
     }
 
-    for (auto & [key, button] : button_bindings) {
+    for (auto &[key, button] : button_bindings)
+    {
         j["button_bindings"][std::to_string(key)] = button;
     }
 
-    for (auto & [key, mode] : toggle_bindings) {
+    for (auto &[key, mode] : toggle_bindings)
+    {
         j["toggle_bindings"][std::to_string(key)] = mode;
     }
 
-    for (auto & [key, mode] : itf.tagged_bindings) {
+    for (auto &[key, mode] : itf.tagged_bindings)
+    {
         j["tagged_bindings"][std::to_string(key)] = mode;
     }
 
-    for (auto & [key, val] : itf.value_bindings) {
+    for (auto &[key, val] : itf.value_bindings)
+    {
         j["value_bindings"][key] = val;
     }
 
@@ -270,54 +361,70 @@ json InputRemapper::export_bytes() const {
     j["rs_binding"] = rs_binding;
 
     j["threshold"] = itf.auto_threshold;
+    j["passthrough"] = disable_passthrough;
+    j["stabilizer"] = boost_aim_assist;
+    j["keepalive"] = roller_keepalive;
     j["sensitivity"] = itf.sense;
 
     return j;
 }
 
-void InputRemapper::import_bytes(BYTE* bytes) {
-    std::string json_data((char*) bytes);
+void InputRemapper::import_bytes(BYTE *bytes)
+{
+    std::string json_data((char *)bytes);
 
     json j = json::parse(json_data);
 
     // Load Analog Bindings
-    if (j.contains("left_analog_bindings")) {
-        for (const auto& [key, value] : j["left_analog_bindings"].items()) {
-            VirtualKey vkey = (VirtualKey) (std::stoi(key));
-            left_analog_bindings[vkey] = (InputVector) {value[0], value[1]};
+    if (j.contains("left_analog_bindings"))
+    {
+        for (const auto &[key, value] : j["left_analog_bindings"].items())
+        {
+            VirtualKey vkey = (VirtualKey)(std::stoi(key));
+            left_analog_bindings[vkey] = (VecF32){value[0], value[1]};
         }
     }
 
-    if (j.contains("right_analog_bindings")) {
-        for (const auto& [key, value] : j["right_analog_bindings"].items()) {
-            VirtualKey vkey = (VirtualKey) (std::stoi(key));
-            right_analog_bindings[vkey] = (InputVector) {value[0], value[1]};
+    if (j.contains("right_analog_bindings"))
+    {
+        for (const auto &[key, value] : j["right_analog_bindings"].items())
+        {
+            VirtualKey vkey = (VirtualKey)(std::stoi(key));
+            right_analog_bindings[vkey] = (VecF32){value[0], value[1]};
         }
     }
 
-    if (j.contains("button_bindings")) {
-        for (const auto& [key, value] : j["button_bindings"].items()) {
-            VirtualKey vkey = (VirtualKey) (std::stoi(key));
+    if (j.contains("button_bindings"))
+    {
+        for (const auto &[key, value] : j["button_bindings"].items())
+        {
+            VirtualKey vkey = (VirtualKey)(std::stoi(key));
             button_bindings[vkey] = value;
         }
     }
 
-    if (j.contains("toggle_bindings")) {
-        for (const auto& [key, value] : j["toggle_bindings"].items()) {
-            VirtualKey vkey = (VirtualKey) (std::stoi(key));
+    if (j.contains("toggle_bindings"))
+    {
+        for (const auto &[key, value] : j["toggle_bindings"].items())
+        {
+            VirtualKey vkey = (VirtualKey)(std::stoi(key));
             toggle_bindings[vkey] = value;
         }
     }
 
-    if (j.contains("tagged_bindings")) {
-        for (const auto& [key, value] : j["tagged_bindings"].items()) {
-            VirtualKey vkey = (VirtualKey) (std::stoi(key));
+    if (j.contains("tagged_bindings"))
+    {
+        for (const auto &[key, value] : j["tagged_bindings"].items())
+        {
+            VirtualKey vkey = (VirtualKey)(std::stoi(key));
             itf.bind_flag(vkey, value);
         }
     }
 
-    if (j.contains("value_bindings")) {
-        for (const auto& [key, value] : j["value_bindings"].items()) {
+    if (j.contains("value_bindings"))
+    {
+        for (const auto &[key, value] : j["value_bindings"].items())
+        {
             int val = value.get<int>();
             itf.bind_value(key, val);
         }
@@ -325,55 +432,70 @@ void InputRemapper::import_bytes(BYTE* bytes) {
 
     std::vector<std::string> scripts = j["scripts"].get<std::vector<std::string>>();
 
-    for (auto p : scripts) {
+    for (auto p : scripts)
+    {
         add_script(p.c_str());
     }
 
-    lt_binding = (VirtualKey) (j.value("lt_binding", VKEY_None));
-    rt_binding = (VirtualKey) (j.value("rt_binding", VKEY_None));
-    ls_binding = (VirtualKey) (j.value("ls_binding", VKEY_None));
-    rs_binding = (VirtualKey) (j.value("rs_binding", VKEY_None));
-    
-    itf.auto_threshold = (bool) (j.value("threshold", 0));
-    set_sensitivity(j.value("sensitivity", itf.sense));
+    lt_binding = (VirtualKey)(j.value("lt_binding", VKEY_None));
+    rt_binding = (VirtualKey)(j.value("rt_binding", VKEY_None));
+    ls_binding = (VirtualKey)(j.value("ls_binding", VKEY_None));
+    rs_binding = (VirtualKey)(j.value("rs_binding", VKEY_None));
+
+    itf.auto_threshold = (bool)(j.value("threshold", 0));
+    disable_passthrough = (bool) j.value("passthrough", false);
+    boost_aim_assist = (bool) j.value("stabilizer", false);
+    roller_keepalive = (bool) j.value("keepalive", false);
+
+    set_sensitivity(j.value("sensitivity",  itf.sense));
 
     LOGI("loaded config data");
 }
 
-void InputRemapper::set_sensitivity(float thres) {
+void InputRemapper::set_sensitivity(float thres)
+{
     itf.sense = thres;
 }
 
-void InputRemapper::bind_hold_toggle(VirtualKey binding) {
+void InputRemapper::bind_hold_toggle(VirtualKey binding)
+{
     toggle_bindings.insert({binding, T_MODE_HOLD});
 }
 
-void InputRemapper::bind_click_toggle(VirtualKey binding) {
+void InputRemapper::bind_click_toggle(VirtualKey binding)
+{
     toggle_bindings.insert({binding, T_MODE_SINGLE_PRESS});
 }
 
-void InputRemapper::bind_hold_untoggle(VirtualKey binding) {
+void InputRemapper::bind_hold_untoggle(VirtualKey binding)
+{
     toggle_bindings.insert({binding, T_MODE_HOLD_UNTOGGLE});
 }
 
-bool InputRemapper::do_emulate() const {
+bool InputRemapper::do_emulate() const
+{
     return itf.toggle_intercept;
 }
 
-void InputRemapper::print() {
-    for (auto & [key, dir] : left_analog_bindings) {
+void InputRemapper::print()
+{
+    for (auto &[key, dir] : left_analog_bindings)
+    {
         LOGI("%i: {%.2f %.2f} ", key, dir.dx, dir.dy);
     }
 
-    for (auto & [key, dir] : right_analog_bindings) {
+    for (auto &[key, dir] : right_analog_bindings)
+    {
         LOGI("%i: {%.2f %.2f} ", key, dir.dx, dir.dy);
     }
 
-    for (auto & [key, binding] : button_bindings) {
+    for (auto &[key, binding] : button_bindings)
+    {
         LOGI("%i: %i ", key, binding);
     }
 
-    for (auto & [key, binding] : itf.tagged_bindings) {
+    for (auto &[key, binding] : itf.tagged_bindings)
+    {
         LOGI("%i: %s ", key, binding.c_str());
     }
 
@@ -386,25 +508,31 @@ void InputRemapper::print() {
     LOGI("threshold %i", itf.auto_threshold);
 }
 
-void InputRemapper::add_script(const char* path) {
-    LuaEnvironment* environment = new LuaEnvironment(path);
+void InputRemapper::add_script(const char *path)
+{
+    LuaEnvironment *environment = new LuaEnvironment(path);
     scripts.push_back(environment);
     script_paths.push_back(std::string(path));
     LOGI("added scripts %s", path);
 }
 
-void InputRemapper::start_scripts() {
-    for (auto script : scripts) {
+void InputRemapper::start_scripts()
+{
+    for (auto script : scripts)
+    {
         script->start();
     }
 }
 
-void InputRemapper::stop_scripts() {
-    for (auto script : scripts) {
+void InputRemapper::stop_scripts()
+{
+    for (auto script : scripts)
+    {
         script->stop();
     }
 }
 
-void InputRemapper::toggle_controller(bool v) {
+void InputRemapper::toggle_controller(bool v)
+{
     block_controller = !v;
 }

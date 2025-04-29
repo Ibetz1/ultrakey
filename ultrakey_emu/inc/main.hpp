@@ -32,11 +32,11 @@ inline float fclampf(float val, float min, float max) {
 
 #include "enums.hpp"
 
-struct InputVector {
+struct VecF32 {
     float dx, dy;
 };
 
-struct OutputVector {
+struct VecShort {
     short dx, dy;
 };
 

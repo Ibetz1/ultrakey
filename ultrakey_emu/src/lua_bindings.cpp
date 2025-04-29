@@ -243,6 +243,55 @@ int LuaBindings::lua_toggle_controller(lua_State* L) {
     return 0;
 }
 
+int LuaBindings::lua_toggle_passthrough(lua_State* L) {
+    if (!lua_isboolean(L, 1)) {
+        return luaL_error(L, "Unvalid type, expecing boolean");
+    }
+
+    bool state = lua_toboolean(L, 1);
+
+    remapper->disable_passthrough = state;
+
+    return 0;
+}
+int LuaBindings::lua_get_passthrough(lua_State* L) {
+    lua_pushboolean(L, remapper->disable_passthrough);
+
+    return 1;
+}
+
+int LuaBindings::lua_toggle_stabilizer(lua_State* L) {
+    if (!lua_isboolean(L, 1)) {
+        return luaL_error(L, "Unvalid type, expecing boolean");
+    }
+
+    bool state = lua_toboolean(L, 1);
+    remapper->boost_aim_assist = state;
+
+    return 0;
+}
+int LuaBindings::lua_get_stabilizer(lua_State* L) {
+    lua_pushboolean(L, remapper->boost_aim_assist);
+
+    return 1;
+}
+
+int LuaBindings::lua_toggle_keepalive(lua_State* L) {
+    if (!lua_isboolean(L, 1)) {
+        return luaL_error(L, "Unvalid type, expecing boolean");
+    }
+
+    bool state = lua_toboolean(L, 1);
+    remapper->roller_keepalive = state;
+
+    return 0;
+}
+int LuaBindings::lua_get_keepalive(lua_State* L) {
+    lua_pushboolean(L, remapper->roller_keepalive);
+
+    return 1;
+}
+
 int LuaBindings::lua_stick_offset(lua_State* L) {
     float dx = luaL_checknumber(L, 1);
     float dy = luaL_checknumber(L, 2);
@@ -296,6 +345,12 @@ void LuaBindings::register_functions(lua_State* L) {
     lua_register(L, "MoveLStick", lua_stick_offset);
     lua_register(L, "MoveRStick", lua_aim_offset);
     lua_register(L, "ToggleController", lua_toggle_controller);
+    lua_register(L, "TogglePassthrough", lua_toggle_passthrough);
+    lua_register(L, "ToggleKeepalive", lua_toggle_keepalive);
+    lua_register(L, "ToggleStabilizer", lua_toggle_stabilizer);
+    lua_register(L, "GetPassthrough", lua_get_passthrough);
+    lua_register(L, "GetKeepalive", lua_get_keepalive);
+    lua_register(L, "GetStabilizer", lua_get_stabilizer);
 }
 
 void LuaBindings::bind_input_interface(InputInterface* input_itf) {

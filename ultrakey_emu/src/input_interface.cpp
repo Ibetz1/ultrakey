@@ -145,7 +145,7 @@ void InputInterface::stop() {
     pthread_join(thread, NULL);
 }
 
-void InputInterface::bind_mouse_output(InputVector* binding) {
+void InputInterface::bind_mouse_output(VecF32* binding) {
     // pthread_mutex_lock(&rwlock);
 
     mouse_output = binding;

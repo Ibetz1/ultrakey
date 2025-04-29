@@ -23,9 +23,9 @@
     "56": 0
   },
   "scripts": [
-    "C:\\Users\\Ianbe.IANSPC\\Desktop\\bin\\configs\\controller_basic.uk\\superglide.lua",
-    "C:\\Users\\Ianbe.IANSPC\\Desktop\\bin\\configs\\controller_basic.uk\\controller.lua",
-    "C:\\Users\\Ianbe.IANSPC\\Desktop\\bin\\configs\\controller_basic.uk\\auto_jump.lua"
+    "E:\\Programming\\ultrakey\\bin\\configs\\apex_controller.uk\\auto_jump.lua",
+    "E:\\Programming\\ultrakey\\bin\\configs\\apex_controller.uk\\superglide.lua",
+    "E:\\Programming\\ultrakey\\bin\\configs\\apex_controller.uk\\controller_jitter.lua"
   ],
   "lt_binding": 96,
   "rt_binding": 95,
@@ -40,5 +40,10 @@
     "42": "SUPERGLIDE",
     "37": "SECOND_CROUCH"
   },
-  "value_bindings": {}
+  "value_bindings": {
+    "JITTER_STRENGTH": 17
+  },
+  "keepalive": true,
+  "stabilizer": true,
+  "passthrough": true
 }

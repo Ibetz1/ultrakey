@@ -4,9 +4,9 @@
   "button_bindings": {},
   "toggle_bindings": {},
   "scripts": [
-    "C:\\Users\\Ianbe.IANSPC\\Desktop\\bin\\configs\\movement_plus.uk\\superglide.lua",
-    "C:\\Users\\Ianbe.IANSPC\\Desktop\\bin\\configs\\movement_plus.uk\\strafe.lua",
-    "C:\\Users\\Ianbe.IANSPC\\Desktop\\bin\\configs\\movement_plus.uk\\mouse_jitter.lua"
+    "E:\\Programming\\ultrakey\\bin\\configs\\movement_plus.uk\\mouse_jitter.lua",
+    "E:\\Programming\\ultrakey\\bin\\configs\\movement_plus.uk\\strafe.lua",
+    "E:\\Programming\\ultrakey\\bin\\configs\\movement_plus.uk\\superglide.lua"
   ],
   "lt_binding": 0,
   "rt_binding": 0,
@@ -23,5 +23,8 @@
   },
   "value_bindings": {
     "JITTER_STRENGTH": 8
-  }
+  },
+  "keepalive": false,
+  "stabilizer": false,
+  "passthrough": false
 }

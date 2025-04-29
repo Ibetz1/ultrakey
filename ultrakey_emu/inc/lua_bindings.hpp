@@ -22,6 +22,18 @@ struct LuaBindings {
     static int lua_block_key(lua_State* L);
 
     static int lua_toggle_controller(lua_State* L);
+
+    static int lua_toggle_passthrough(lua_State* L);
+    
+    static int lua_get_passthrough(lua_State* L);
+    
+    static int lua_toggle_stabilizer(lua_State* L);
+    
+    static int lua_get_stabilizer(lua_State* L);
+    
+    static int lua_toggle_keepalive(lua_State* L);
+    
+    static int lua_get_keepalive(lua_State* L);
     
     static int lua_release_key(lua_State* L);
     
