@@ -93,4 +93,3 @@ def await_access_token(login_window):
     open_discord_oauth()
     server_thread = threading.Thread(target=lambda: start_token_server(login_window))
     server_thread.start()
-

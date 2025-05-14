@@ -32,11 +32,29 @@
 - consolodated and updated configs (DONE)
 
 1.1.1
+- Lifetime purchase
+- Add mouse button support
 - Snap tap
 - Add auto shield swap
-- Add duplicate script
+
+1.1.2
+- Move to flutter (big project)
+- Create app installer
+- Create app updater
 - Add ultrakey lite
     - add another app page for lite mode
         - removes all features except for AA
     - add lite mode flag to emulator
         - this will hard disable script support and rebind support
+
+-- FRONT END TODO --
+
+- lower price 9.99 (done)
+- change disocrd TOS to website link (done)
+- make releases public (done)
+
+- remove demo, put vid in about covering everything UltraKey
+- add a feature overview video in about
+- link to website and not the discord
+- fix up website with new vids and downloads
+- figure out tracking for links

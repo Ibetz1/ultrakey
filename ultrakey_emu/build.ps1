@@ -13,6 +13,6 @@ $src = Join-Path $dir "src/*.cpp"
 $inc = Join-Path $dir 'inc'
 $out = Join-Path $outdir $name
 
-Invoke-Expression "g++ $src -o $out -I$inc -lViGEmClient -L$dir -lsetupapi -linterception -llua -v"
+Invoke-Expression "g++ $src -o $out -I$inc -lViGEmClient -L$dir -lsetupapi -linterception -llua"
 
 return $out

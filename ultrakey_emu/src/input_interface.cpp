@@ -36,26 +36,30 @@ int InputInterface::handle_mouse(const InterceptionMouseStroke &mouseStroke) {
 
     if (mouse_output != nullptr) {
         if (sense > 0) {
-            mouse_output->dx =  mouseStroke.x * sense;
-            mouse_output->dy = -mouseStroke.y * sense;
+            t_stroke_x = mouseStroke.x;
+            t_stroke_y = mouseStroke.y;
+            mouse_output->dx = t_stroke_x * sense;
+            mouse_output->dy = -t_stroke_y * sense;
 
             float mag = sqrtf(
                 (mouse_output->dx * mouse_output->dx) + 
                 (mouse_output->dy * mouse_output->dy)
             );
-    
+
             if (mag > 1.f) {
                 if (auto_threshold) {
                     mouse_output->dx = 0.f;
                     mouse_output->dy = 0.f;
                     ret = 0;
                 } else {
-                    mouse_output->dx /= mag;
-                    mouse_output->dy /= mag;
+                    mouse_output->dx = mouse_output->dx / mag;
+                    mouse_output->dy = mouse_output->dy / mag;
                 }
             } else {
                 ret = key_block[VKEY_MOUSE];
             }
+
+            *mouse_report = true;
         } else {
             ret = 0;
         }
@@ -75,6 +79,7 @@ int InputInterface::handle_mouse(const InterceptionMouseStroke &mouseStroke) {
         key_record[VKEY_MOUSE_RB] = true;
         ret = key_block[VKEY_MOUSE_RB];
     }
+
     if (mouseStroke.state & INTERCEPTION_MOUSE_RIGHT_BUTTON_UP) {
         key_record[VKEY_MOUSE_RB] = false;
         ret = 0;
@@ -84,14 +89,40 @@ int InputInterface::handle_mouse(const InterceptionMouseStroke &mouseStroke) {
         key_record[VKEY_MOUSE_MB] = true;
         ret = key_block[VKEY_MOUSE_MB];
     }
+
     if (mouseStroke.state & INTERCEPTION_MOUSE_MIDDLE_BUTTON_UP) {
         key_record[VKEY_MOUSE_MB] = false;
         ret = 0;
     }
+
     if (mouseStroke.state & INTERCEPTION_MOUSE_WHEEL) {
         key_record[VKEY_MOUSE_MW] = true;
         ret = key_block[VKEY_MOUSE_MW];
     }
+
+    // if (mouseStroke.state & INTERCEPTION_MOUSE_BUTTON_4_DOWN) {
+    //     // key_record[VKEY_MOUSE_MB] = true;
+    //     // ret = key_block[VKEY_MOUSE_MB];
+    //     ret = false;
+    // }
+
+    // if (mouseStroke.state & INTERCEPTION_MOUSE_BUTTON_4_UP) {
+    //     // key_record[VKEY_MOUSE_MB] = true;
+    //     // ret = key_block[VKEY_MOUSE_MB];
+    //     ret = false;
+    // }
+
+    // if (mouseStroke.state & INTERCEPTION_MOUSE_BUTTON_5_DOWN) {
+    //     // key_record[VKEY_MOUSE_MB] = true;
+    //     // ret = key_block[VKEY_MOUSE_MB];
+    //     ret = false;
+    // }
+
+    // if (mouseStroke.state & INTERCEPTION_MOUSE_BUTTON_5_UP) {
+    //     // key_record[VKEY_MOUSE_MB] = true;
+    //     // ret = key_block[VKEY_MOUSE_MB];
+    //     ret = false;
+    // }
 
     // pthread_mutex_lock(&rwlock);
 
@@ -153,6 +184,10 @@ void InputInterface::bind_mouse_output(VecF32* binding) {
     // pthread_mutex_lock(&rwlock);
 }
 
+void InputInterface::bind_mouse_report(bool* binding) {
+    mouse_report = binding;
+}
+
 bool InputInterface::key_down(VirtualKey key) const {
     // pthread_mutex_lock(&rwlock);
     
@@ -192,8 +227,6 @@ void InputInterface::push_keystroke(VirtualKey keystroke, int state) {
 }
 
 void InputInterface::move_cursor(int x, int y, int type) {
-    // pthread_mutex_lock(&rwlock);
-
     InterceptionMouseStroke inst = {0};
 
     // Set absolute movement
@@ -211,8 +244,6 @@ void InputInterface::move_cursor(int x, int y, int type) {
             }
         }
     }
-
-    // pthread_mutex_lock(&rwlock);
 }
 
 bool InputInterface::flag_active(std::string flag) const {

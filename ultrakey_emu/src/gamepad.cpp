@@ -35,13 +35,13 @@ Gamepad::~Gamepad() {
 
 void Gamepad::update() {
     if (bindings.do_emulate() && !bindings.block_controller) {
-        VecShort lstick_output = bindings.get_lstick();
-        VecShort rstick_output = bindings.get_rstick();
+        VecInt lstick_output = bindings.get_lstick();
+        VecInt rstick_output = bindings.get_rstick();
 
-        report.sThumbRX = rstick_output.dx;
-        report.sThumbRY = rstick_output.dy;
-        report.sThumbLX = lstick_output.dx;
-        report.sThumbLY = lstick_output.dy;
+        report.sThumbRX = (SHORT) (rstick_output.dx & 0x0000FFFF);
+        report.sThumbRY = (SHORT) (rstick_output.dy & 0x0000FFFF);
+        report.sThumbLX = (SHORT) (lstick_output.dx & 0x0000FFFF);
+        report.sThumbLY = (SHORT) (lstick_output.dy & 0x0000FFFF);
         report.bLeftTrigger = bindings.get_lt();
         report.bRightTrigger = bindings.get_rt();
         report.wButtons = bindings.get_button_outputs();

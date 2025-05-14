@@ -18,11 +18,11 @@ struct InputRemapper {
 
     VecF32 analog_offset = { 0 };
     VecF32 aim_offset = { 0 };
-    VecShort l_n_dxy = { 0 };
-    VecShort r_n_dxy = { 0 };
+    VecInt l_n_dxy = { 0 };
+    VecInt r_n_dxy = { 0 };
 
-    VecShort m_b_dxy = { 0 };
-    VecShort mouse_converstion = { 0 };
+    VecInt m_b_dxy = { 0 };
+    VecInt mouse_converstion = { 0 };
     VecF32 m_bi_dxy = { 0 };
 
     // switch data (toggles between 0 and 255)
@@ -44,6 +44,7 @@ struct InputRemapper {
     bool intercept_held = false;
     bool untoggle_mask = false;
     bool did_toggle_emu = false;
+    bool mouse_reported = false;
 
     void update();
 
@@ -94,10 +95,10 @@ struct InputRemapper {
     USHORT get_button_outputs() const;
 
     // returns lstick bound output vector
-    VecShort get_lstick() const;
+    VecInt get_lstick() const;
 
     // returns rstick bound output vector
-    VecShort get_rstick() const;
+    VecInt get_rstick() const;
 
     /*
         encoding

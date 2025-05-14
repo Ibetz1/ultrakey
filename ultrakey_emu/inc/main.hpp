@@ -18,6 +18,8 @@
 #include "json/json.hpp"
 #include "lua.hpp"
 
+#define DEBUG_ENABLE 0
+
 using json = nlohmann::json;
 
 constexpr short S16_lim = 0x7FFE - 1;
@@ -36,8 +38,8 @@ struct VecF32 {
     float dx, dy;
 };
 
-struct VecShort {
-    short dx, dy;
+struct VecInt {
+    int dx, dy;
 };
 
 struct ToggleBinding {

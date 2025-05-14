@@ -254,6 +254,7 @@ int LuaBindings::lua_toggle_passthrough(lua_State* L) {
 
     return 0;
 }
+
 int LuaBindings::lua_get_passthrough(lua_State* L) {
     lua_pushboolean(L, remapper->disable_passthrough);
 
@@ -270,6 +271,7 @@ int LuaBindings::lua_toggle_stabilizer(lua_State* L) {
 
     return 0;
 }
+
 int LuaBindings::lua_get_stabilizer(lua_State* L) {
     lua_pushboolean(L, remapper->boost_aim_assist);
 
@@ -368,7 +370,7 @@ InputRemapper* LuaBindings::remapper = nullptr;
 
 LuaScript::LuaScript(const char* file) {
     L = luaL_newstate();
-   luaL_openlibs(L);
+    luaL_openlibs(L);
 
     LuaBindings::register_functions(L);
     LuaBindings::push_enums(L);

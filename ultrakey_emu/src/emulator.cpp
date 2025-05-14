@@ -70,8 +70,11 @@ void Emulator::load_defaults() {
 
     input_mapper.bind_lt(VKEY_MOUSE_RB);
     input_mapper.bind_rt(VKEY_MOUSE_LB);
-    input_mapper.set_sensitivity(0.1f);
-
+    input_mapper.bind_button(VKEY_SPACE, ButtonCode::BCODE_GAMEPAD_A);
+    input_mapper.bind_button(VKEY_LEFT_SHIFT, ButtonCode::BCODE_GAMEPAD_LEFT_THUMB);
+    input_mapper.set_sensitivity(.09f);
+    input_mapper.disable_passthrough = true;
+    
     // input_mapper.add_script("./scripts/test.lua");
 
     // save("./config/default.ukc");

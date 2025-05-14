@@ -18,7 +18,9 @@
     ]
   },
   "right_analog_bindings": {},
-  "button_bindings": {},
+  "button_bindings": {
+    "57": 4096
+  },
   "toggle_bindings": {
     "56": 0
   },
@@ -42,7 +44,7 @@
     "JITTER_STRENGTH": 12,
     "SPAM_AFTER": 50
   },
-  "keepalive": true,
+  "keepalive": false,
   "stabilizer": true,
   "passthrough": true
 }

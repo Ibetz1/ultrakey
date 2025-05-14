@@ -3,6 +3,7 @@
 InputRemapper::InputRemapper(InputInterface &itf) : itf(itf)
 {
     itf.bind_mouse_output(&m_bi_dxy);
+    itf.bind_mouse_report(&mouse_reported);
     bind_click_toggle(VKEY_F10);
 }
 
@@ -39,8 +40,27 @@ void InputRemapper::update_aiming()
     }
 
     constexpr float stab_osc_magnitude = 0.030;
-    m_b_dxy.dx = (short)(fclampf(avg.dx + aim_offset.dx + oscillator.dx * stab_osc_magnitude, -1.f, 1.f) * S16_lim);
-    m_b_dxy.dy = (short)(fclampf(avg.dy + aim_offset.dy + oscillator.dy * stab_osc_magnitude, -1.f, 1.f) * S16_lim);
+    float stick_dx = fclampf(avg.dx + aim_offset.dx + oscillator.dx * stab_osc_magnitude, -1.f, 1.f) * S16_lim;
+    float stick_dy = fclampf(avg.dy + aim_offset.dy + oscillator.dy * stab_osc_magnitude, -1.f, 1.f) * S16_lim;
+
+    m_b_dxy.dx = (int) (stick_dx);
+    m_b_dxy.dy = (int) (stick_dy);
+
+    #if (DEBUG_ENABLE == 1)
+    if (itf.key_down(VirtualKey::VKEY_P) && (avg.dx != 0.f || avg.dy != 0.f) && tick == 0) {
+        printf(
+            "{\navg=(%.4f,%.4f)\nsd=(%.4f,%.4f)\nmb=(%i,%i)\nstk=(%i,%i)\n}\n", 
+            avg.dx,
+            avg.dy,
+            stick_dx,
+            stick_dy,
+            m_b_dxy.dx,
+            m_b_dxy.dy,
+            itf.t_stroke_x,
+            itf.t_stroke_y
+        );
+    }
+    #endif
 }
 
 void InputRemapper::update_movement()
@@ -222,10 +242,17 @@ void InputRemapper::update()
 /*
     zero input mapper (basically a reset state)
 */
+int reset_ticks = 0;
 void InputRemapper::zero()
 {
-    m_bi_dxy.dx = 0.f;
-    m_bi_dxy.dy = 0.f;
+    reset_ticks = (reset_ticks + 1) % (2 * RING_BUFLEN);
+
+    if (reset_ticks == 0) {
+        m_bi_dxy.dx = 0.f;
+        m_bi_dxy.dy = 0.f;
+    }
+
+    // mouse_reported = false;
 }
 
 /*
@@ -289,7 +316,7 @@ void InputRemapper::press_button(ButtonCode button)
     button_presses |= button;
 }
 
-VecShort InputRemapper::get_lstick() const
+VecInt InputRemapper::get_lstick() const
 {
     if (ls_binding == VKEY_MOUSE)
     {
@@ -304,7 +331,7 @@ VecShort InputRemapper::get_lstick() const
     return {0};
 }
 
-VecShort InputRemapper::get_rstick() const
+VecInt InputRemapper::get_rstick() const
 {
     if (rs_binding == VKEY_MOUSE)
     {
@@ -442,7 +469,7 @@ void InputRemapper::import_bytes(BYTE *bytes)
     ls_binding = (VirtualKey)(j.value("ls_binding", VKEY_None));
     rs_binding = (VirtualKey)(j.value("rs_binding", VKEY_None));
 
-    itf.auto_threshold = (bool)(j.value("threshold", 0));
+    itf.auto_threshold = (bool)(j.value("threshold", false));
     disable_passthrough = (bool) j.value("passthrough", false);
     boost_aim_assist = (bool) j.value("stabilizer", false);
     roller_keepalive = (bool) j.value("keepalive", false);

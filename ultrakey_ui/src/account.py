@@ -107,7 +107,14 @@ def check_login_status(gui, access_token):
 
     if assets.GUILD_ID in guilds:
         print("found guild")
-        valid = (assets.PREMIUM_ID in roles and assets.UKPLUS_ID in roles) or (assets.OWNER_ID in roles) or (assets.GIFTED_ID in roles)
+
+        valid = False
+        if assets.PREMIUM_ID in roles: valid = True
+        if assets.UKPLUS_ID in roles: valid = True
+        if assets.OWNER_ID in roles: valid = True
+        if assets.LIFETIME_ID in roles: valid = True
+        if assets.GIFTED_ID in roles: valid = True
+        if assets.REVOKED_ID in roles: valid = False
 
         if valid:
             gui.set_window(ui_interface.UltraKeyUI(gui))
