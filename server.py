@@ -63,7 +63,7 @@ def getkey():
         "client_secret": CLIENT_SECRET,
         "grant_type": "authorization_code",
         "code": code,
-        "redirect_uri": "http://localhost:5000/getkey", #REDIRECT_URI,
+        "redirect_uri": "https://ultrakey.onrender.com/getkey",
         "scope": SCOPE
     }
     headers = { "Content-Type": "application/x-www-form-urlencoded" }
