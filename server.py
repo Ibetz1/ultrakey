@@ -48,7 +48,7 @@ def callback():
     access_token = tokens.get("access_token")
 
     if access_token:
-        return redirect(f"http://localhost:49152?access_token={access_token}")
+        return redirect(f"http://localhost:49152/callback?access_token={access_token}")
     else:
         return "Failed to retrieve access token."
 
