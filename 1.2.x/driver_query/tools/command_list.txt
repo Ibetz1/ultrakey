@@ -1,0 +1,23 @@
+uninstallation
+
+pre-restart:
+driverquery /V /FO LIST | more >> uninstall/pre_adv.txt
+driverquery /V >> uninstall/pre_verbose.txt
+driverquery >> uninstall/pre.txt
+
+post-restart:
+driverquery /V /FO LIST | more >> uninstall/post_adv.txt
+driverquery /V >> uninstall/post_verbose.txt
+driverquery >> uninstall/post.txt
+
+installation
+
+pre-restart:
+driverquery /V /FO LIST | more >> install/pre_adv.txt
+driverquery /V >> install/pre_verbose.txt
+driverquery >> install/pre.txt
+
+post-restart:
+driverquery /V /FO LIST | more >> install/post_adv.txt
+driverquery /V >> install/post_verbose.txt
+driverquery >> install/post.txt

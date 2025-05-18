@@ -1,0 +1,43 @@
+{
+  "keepalive": true,
+  "keepalive_speed": 120,
+  "keepalive_strength": 0.30,
+  "left_analog_bindings": {
+    "17": [
+      0.0,
+      1.0
+    ],
+    "30": [
+      -1.0,
+      0.0
+    ],
+    "31": [
+      0.0,
+      -1.0
+    ],
+    "32": [
+      1.0,
+      0.0
+    ]
+  },
+  "ls_binding": 99,
+  "lt_binding": 96,
+  "passthrough": true,
+  "rs_binding": 94,
+  "rt_binding": 95,
+  "scripts": [
+  ],
+  "stabilizer": true,
+  "stabilizer_speed": 50,
+  "stick_sensitivity": 0.12,
+  "stick_smoothing": 0.9,
+  "threshold": true,
+  "toggle_bindings": {
+    "56": 0,
+    "68": 0
+  },
+  "value_bindings": {
+    "JITTER_SMOOTHING": 1,
+    "JITTER_STRENGTH": 20
+  }
+}
