@@ -128,46 +128,47 @@ std::unordered_map<std::string, ButtonCode> pad_ref_enum = {
     { "GAMEPAD_Y" , BCODE_GAMEPAD_Y }
 };
 
-LuaScript* lua_get_script(lua_State* L) {
-    lua_getfield(L, LUA_REGISTRYINDEX, "script_ptr");
-    LuaScript* script = (LuaScript*) (lua_touserdata(L, -1));
+LuaContext* lua_get_context(lua_State* L) {
+    lua_getfield(L, LUA_REGISTRYINDEX, "context_ptr");
+    LuaContext* context = (LuaContext*) (lua_touserdata(L, -1));
     lua_pop(L, 1);
-    return script;
+
+    if (context == nullptr) {
+        THROW("could not find script context");
+    }
+
+    return context;
 }
 
 int lua_sleep(lua_State* L) {
     int ms = luaL_checkinteger(L, 1);
-    if (ms < 0) ms = 0;
-
-    LuaScript* script = lua_get_script(L);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(ms));
-    return 0;
+    lua_pushinteger(L, ms);
+    return lua_yield(L, 1);
 }
 
 int lua_press_key(lua_State* L) {
     int key_code = luaL_checkinteger(L, 1);
-    LuaScript* script = lua_get_script(L);
+    LuaContext* context = lua_get_context(L);
 
-    script->gamepad->mnk_context->push_key((VirtualKey) key_code, INTERCEPTION_KEY_DOWN);
+    context->gamepad->mnk_context->push_key((VirtualKey) key_code, INTERCEPTION_KEY_DOWN);
 
     return 0;
 }
 
 int lua_release_key(lua_State* L) {
     int key_code = luaL_checkinteger(L, 1);
-    LuaScript* script = lua_get_script(L);
+    LuaContext* context = lua_get_context(L);
 
-    script->gamepad->mnk_context->push_key((VirtualKey) key_code, INTERCEPTION_KEY_UP);
+    context->gamepad->mnk_context->push_key((VirtualKey) key_code, INTERCEPTION_KEY_UP);
 
     return 0;
 }
 
 int lua_key_down(lua_State* L) {
     int key_code = luaL_checkinteger(L, 1);
-    LuaScript* script = lua_get_script(L);
+    LuaContext* context = lua_get_context(L);
 
-    bool key_down = script->gamepad->mnk_context->key_down((VirtualKey) key_code);
+    bool key_down = context->gamepad->mnk_context->key_down((VirtualKey) key_code);
 
     lua_pushboolean(L, key_down);
     return 1;
@@ -177,15 +178,15 @@ int lua_lerp_mouse(lua_State* L) {
     int dx = luaL_checkinteger(L, 1);
     int dy = luaL_checkinteger(L, 2);
     int time = luaL_checkinteger(L, 3);
-    LuaScript* script = lua_get_script(L);
+    LuaContext* context = lua_get_context(L);
 
-    script->gamepad->mnk_context->move_mouse({(float) dx, (float) dy}, time);
+    context->gamepad->mnk_context->move_mouse({(float) dx, (float) dy}, time);
     return 0;
 }
 
 int lua_block_key(lua_State* L) {
     int binding = luaL_checkinteger(L, 1);
-    LuaScript* script = lua_get_script(L);
+    LuaContext* context = lua_get_context(L);
 
     if (!lua_isboolean(L, 2)) {
         return luaL_error(L, "Unvalid type, expecing boolean");
@@ -193,7 +194,7 @@ int lua_block_key(lua_State* L) {
 
     bool state = lua_toboolean(L, 2);
 
-    script->gamepad->mnk_context->block_key((VirtualKey) binding, state);
+    context->gamepad->mnk_context->block_key((VirtualKey) binding, state);
 
     return 0;
 }
@@ -201,9 +202,9 @@ int lua_block_key(lua_State* L) {
 int lua_binding_down(lua_State* L) {
     size_t size;
     const char* binding = luaL_checklstring(L, 1, &size);
-    LuaScript* script = lua_get_script(L);
+    LuaContext* context = lua_get_context(L);
 
-    bool key_down = script->gamepad->check_flagged_binding(binding);
+    bool key_down = context->gamepad->check_flagged_binding(binding);
 
     lua_pushboolean(L, key_down);
     return 1;
@@ -212,9 +213,9 @@ int lua_binding_down(lua_State* L) {
 int lua_binding_value(lua_State* L) {
     size_t size;
     const char* binding = luaL_checklstring(L, 1, &size);
-    LuaScript* script = lua_get_script(L);
+    LuaContext* context = lua_get_context(L);
 
-    int val = script->gamepad->get_flagged_value(binding);
+    int val = context->gamepad->get_flagged_value(binding);
 
     lua_pushinteger(L, val);
     return 1;
@@ -223,9 +224,9 @@ int lua_binding_value(lua_State* L) {
 int lua_binding_key(lua_State* L) {
     size_t size;
     const char* binding = luaL_checklstring(L, 1, &size);
-    LuaScript* script = lua_get_script(L);
+    LuaContext* context = lua_get_context(L);
 
-    for (auto& [key, val] : script->gamepad->bindings.tagged_bindings) {
+    for (auto& [key, val] : context->gamepad->bindings.tagged_bindings) {
         if (val == std::string(binding)) {
             lua_pushinteger(L, key);
             return 1;
@@ -254,22 +255,13 @@ void push_enums(lua_State* L) {
     lua_setglobal(L, "Button");
 }
 
-void* lua_updater(void* context) {
-    LuaScript* script = (LuaScript*) context;
-    script->clock.begin();
-
-    script->run_main();
-
-    script->clock.end(LUA_TARGET_FPS);
-
-    return nullptr;
-}
-
-LuaScript::LuaScript(const char* path, GamePad* gamepad) : gamepad(gamepad) {
+LuaContext::LuaContext(GamePad* gamepad) :gamepad(gamepad) {
     L = luaL_newstate();
     luaL_openlibs(L);
 
-    // register bindings
+    lua_pushlightuserdata(L, this);
+    lua_setfield(L, LUA_REGISTRYINDEX, "context_ptr");
+
     push_enums(L);
     lua_register(L, "Wait", lua_sleep);
     lua_register(L, "KeyDown", lua_key_down);
@@ -280,40 +272,64 @@ LuaScript::LuaScript(const char* path, GamePad* gamepad) : gamepad(gamepad) {
     lua_register(L, "BoundValue", lua_binding_value);
     lua_register(L, "BoundKey", lua_binding_key);
     lua_register(L, "BindingDown", lua_binding_down);
-
-    if (luaL_dofile(L, path) != LUA_OK) {
-        THROW("Lua error: %s", lua_tostring(L, -1));
-        lua_close(L);
-        return;
-    }
-
-    lua_pushlightuserdata(L, this);
-    lua_setfield(L, LUA_REGISTRYINDEX, "script_ptr");
-
-    runner = new TaskScheduler(1);
-    runner->push(lua_updater, this);
-
-    return;
 }
 
-LuaScript::~LuaScript() {
-    delete runner;
+LuaContext::~LuaContext() {
     lua_close(L);
 }
 
-void LuaScript::run_main() {
-    if (!gamepad->mnk_context->intercept) {
+void LuaContext::add_script(const char* script_path) {
+    // lua_State* co = lua_newthread(L);
+
+    // if (luaL_loadfile(co, script_path) != LUA_OK) {
+    //     THROW("Lua load error: %s", lua_tostring(co, -1));
+    //     return;
+    // }
+    
+    // int nres = 0;
+    // int status = lua_resume(co, nullptr, 0, &nres);
+    
+    // uint64_t wake = 0;
+    // if (status == LUA_YIELD && nres == 1 && lua_isinteger(co, -1)) {
+    //     wake = get_time_ms() + lua_tointeger(co, -1);
+    //     lua_pop(co, 1);
+    // }
+    
+    // scripts.push_back({ co, status, wake });
+    // LOGI("added script %s", script_path);
+    lua_State* co = lua_newthread(L);
+
+    if (luaL_loadfile(co, script_path) != LUA_OK) {
+        THROW("Lua load error: %s", lua_tostring(co, -1));
         return;
     }
 
-    lua_getglobal(L, "main");
-    if (!lua_isfunction(L, -1)) {
-        THROW("'main' function not found in script");
-        lua_close(L);
-        return;
-    }
+    // Push thread into list, unstarted
+    scripts.push_back({ co, LUA_YIELD, 0 });
+    LOGI("added script %s", script_path);
+}
 
-    if (lua_pcall(L, 0, 0, 0) != LUA_OK) {
-        THROW("Lua runtime error: %s", lua_tostring(L, -1));
+void LuaContext::tick() {
+    uint64_t now = (uint64_t) CLK_TIME_CONVERSION(get_time_interval());
+    for (LuaThread& thread : scripts) {
+        if (thread.status != LUA_YIELD)
+            continue;
+
+        if (now >= thread.next_wake_time_ms) {
+            int nres = 0;
+            int status = lua_resume(thread.thread, nullptr, 0, &nres);
+
+            thread.status = status;
+
+            if (status == LUA_YIELD && nres == LUA_YIELD && lua_isinteger(thread.thread, -1)) {
+                thread.next_wake_time_ms = now + lua_tointeger(thread.thread, -1);
+                lua_pop(thread.thread, 1);
+            } else if (status == LUA_OK) {
+                // Finished, no more ticks
+            } else {
+                THROW("lua error: %s", lua_tostring(thread.thread, -1));
+                lua_pop(thread.thread, 1);
+            }
+        }
     }
 }

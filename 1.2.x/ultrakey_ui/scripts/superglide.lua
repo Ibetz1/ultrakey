@@ -6,7 +6,7 @@
 delay = 1000 / 30
 pressed = false
 
-function main()
+while true do
     low_binding = BoundKey("LOW_BINDING")
     high_binding = BoundKey("HIGH_BINDING")
     trigger_binding = BoundKey("SUPERGLIDE")
@@ -41,4 +41,6 @@ function main()
     else
         pressed = false
     end
+
+    Wait(10)
 end

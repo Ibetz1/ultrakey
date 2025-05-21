@@ -12,7 +12,7 @@ class Config {
       lsBinding = VirtualKey.keyNone.value,
       rsBinding = VirtualKey.keyNone.value;
 
-  static double _sensitivity = 0.24;
+  static double _sensitivity = 0.01;
   static double _smoothing = 0.95;
   static double _keepaliveStrength = 0.3;
   static double _stabilizerStrength = 0.032;
@@ -30,11 +30,11 @@ class Config {
   static bool passthrough = false;
   static bool threshold = false;
 
-  static double get sensitivity => unmapSlider(_sensitivity, 0.01, 2.0);
-  static set sensitivity(double v) => _sensitivity = mapSlider(v, 0.01, 2.0);
+  static double get sensitivity => unmapSlider(_sensitivity, 0.001, 0.1, range: 100);
+  static set sensitivity(double v) => _sensitivity = mapSlider(v, 0.001, 0.1, range: 100);
 
-  static double get smoothing => unmapSlider(_smoothing, 0.8, 0.99);
-  static set smoothing(double v) => _smoothing = mapSlider(v, 0.8, 0.99);
+  static double get smoothing => unmapSlider(_smoothing, 0.1, 1, range: 100);
+  static set smoothing(double v) => _smoothing = mapSlider(v, 0.1, 1, range: 100);
 
   static double get stabilizerStrength =>
       unmapSlider(_stabilizerStrength, 0.01, 0.15);
@@ -537,8 +537,8 @@ class ScriptVariable {
 
   final int type;
   final int value;
-  int valueMin;
-  int valueMax;
+  double valueMin;
+  double valueMax;
 }
 
 class ScriptLoader {
@@ -623,8 +623,8 @@ class ScriptLoader {
           vars[parsedValue["name"]] = ScriptVariable(
             1,
             Config.valueBindings[parsedValue["name"]] ?? parsedValue["value"],
-            valueMin: parsedValue["min"],
-            valueMax: parsedValue["max"],
+            valueMin: (parsedValue["min"] as int).toDouble(),
+            valueMax: (parsedValue["max"] as int).toDouble(),
           );
           if (!Config.valueBindings.containsKey(parsedValue["name"])) {
             Config.valueBindings[parsedValue["name"]] = parsedValue["value"];

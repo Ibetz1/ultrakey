@@ -1,8 +1,7 @@
 --[bind]SECOND_CROUCH
-
 tick = 0
 
-function main()
+while true do
     crouch_binding = BoundKey("SECOND_CROUCH")
 
     if crouch_binding == nil then return end
@@ -41,7 +40,6 @@ function main()
         ReleaseKey(Key.A)
         ReleaseKey(Key.S)
         ReleaseKey(Key.D)
-        -- end
     else
         tick = 0
         ReleaseKey(crouch_binding)

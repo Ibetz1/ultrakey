@@ -33,19 +33,19 @@ public:
     }
 
     bool try_pop(T& result) {
-        pthread_mutex_lock(&mutex);
+        // pthread_mutex_lock(&mutex);
         if (queue.empty()) {
             pthread_mutex_unlock(&mutex);
             return false;
         }
         result = queue.front();
         queue.pop();
-        pthread_mutex_unlock(&mutex);
+        // pthread_mutex_unlock(&mutex);
         return true;
     }
 
     void with_front(std::function<bool(T&)> func) {
-        pthread_mutex_lock(&mutex);
+        // pthread_mutex_lock(&mutex);
         if (!queue.empty()) {
             T& front = queue.front();
             bool should_pop = func(front);
@@ -53,7 +53,7 @@ public:
                 queue.pop();
             }
         }
-        pthread_mutex_unlock(&mutex);
+        // pthread_mutex_unlock(&mutex);
     }
 
 private:

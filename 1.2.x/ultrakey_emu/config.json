@@ -1,43 +1,54 @@
 {
-  "keepalive": true,
-  "keepalive_speed": 120,
-  "keepalive_strength": 0.30,
-  "left_analog_bindings": {
-    "17": [
-      0.0,
-      1.0
-    ],
-    "30": [
-      -1.0,
-      0.0
-    ],
-    "31": [
-      0.0,
-      -1.0
-    ],
-    "32": [
-      1.0,
-      0.0
-    ]
-  },
-  "ls_binding": 99,
-  "lt_binding": 96,
-  "passthrough": true,
-  "rs_binding": 94,
-  "rt_binding": 95,
-  "scripts": [
-  ],
-  "stabilizer": true,
-  "stabilizer_speed": 50,
-  "stick_sensitivity": 0.12,
-  "stick_smoothing": 0.9,
-  "threshold": true,
-  "toggle_bindings": {
-    "56": 0,
-    "68": 0
-  },
-  "value_bindings": {
-    "JITTER_SMOOTHING": 1,
-    "JITTER_STRENGTH": 20
-  }
+   "keepalive": true,
+   "passthrough": true,
+   "keepalive_speed": 50,
+   "stabilizer": true,
+   "threshold": true,
+   "keepalive_strength": 0.2985555555555556,
+   "left_analog_bindings": {
+      "17": [
+         0,
+         1
+      ],
+      "30": [
+         -1,
+         0
+      ],
+      "31": [
+         0,
+         -1
+      ],
+      "32": [
+         1,
+         0
+      ]
+   },
+   "right_analog_bindings": {},
+   "ls_binding": 99,
+   "lt_binding": 96,
+   "rs_binding": 94,
+   "rt_binding": 95,
+   "stabilizer_speed": 51,
+   "stabilizer_strength": 0.05,
+   "stick_sensitivity": 0.005,
+   "stick_smoothing": 0.9,
+   "scripts": [
+      "C:\\Users\\Ianbe.IANSPC\\Desktop\\ultrakey_flutter\\ultrakey_emu\\scripts\\script1.lua"
+   ],
+   "button_bindings": {},
+   "toggle_bindings": {
+      "56": 0
+   },
+   "tagged_bindings": {
+      "18": "LOOTING_BIND",
+      "42": "SUPERGLIDE",
+      "66": "LOW_BINDING",
+      "67": "HIGH_BINDING",
+      "37": "SECOND_CROUCH"
+   },
+   "value_bindings": {
+      "LOOTING_SPAM_AFTER": 10,
+      "JITTER_SMOOTHING": 3,
+      "JITTER_STRENGTH": 20
+   }
 }

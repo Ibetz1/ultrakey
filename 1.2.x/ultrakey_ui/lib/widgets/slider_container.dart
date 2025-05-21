@@ -13,8 +13,8 @@ class SliderContainer extends StatefulWidget {
 
   final double value;
   final String? label;
-  final int minValue;
-  final int maxValue;
+  final double minValue;
+  final double maxValue;
   final void Function(double)? update;
 
   @override
@@ -40,8 +40,8 @@ class _SliderContainerState extends State<SliderContainer> {
               ),
               child: Slider(
                 value: widget.value,
-                min: widget.minValue.toDouble(),
-                max: widget.maxValue.toDouble(),
+                min: widget.minValue,
+                max: widget.maxValue,
                 onChanged: (newValue) {
                   widget.update?.call(newValue);
                 },

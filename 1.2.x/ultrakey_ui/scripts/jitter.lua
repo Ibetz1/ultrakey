@@ -1,7 +1,7 @@
 --[1,10]JITTER_SMOOTHING=2
 --[1,70]JITTER_STRENGTH=10
 
-function main()
+while true do
     MAX_MS = BoundValue("JITTER_SMOOTHING")
     MAX_DIR = BoundValue("JITTER_STRENGTH")
 
@@ -15,4 +15,6 @@ function main()
     
         Wait(2 * time + 5);
     end
+
+    Wait(10)
 end

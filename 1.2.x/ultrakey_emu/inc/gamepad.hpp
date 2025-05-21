@@ -1,8 +1,8 @@
 #ifndef _GAMEPAD_HPP
 #define _GAMEPAD_HPP
 
-void* gamepad_handler(void* data);
-void* output_handler(void* data);
+void* input_interrupt(Interrupt* interrupt);
+void* output_interrupt(Interrupt* interrupt);
 
 struct GamePad {
 
@@ -24,28 +24,19 @@ struct GamePad {
     bool untoggle_mask = false;
     bool did_toggle_emu = false;
     
-    // clock
-    Clock input_timer;
-    Clock output_timer;
-
     // vigem
     PVIGEM_CLIENT client;
     PVIGEM_TARGET pad;
     XUSB_REPORT report;
 
-    // lua
-    std::vector<LuaScript*> running_scripts;
-
     GamePad(MnkContext* mnk_context);
     ~GamePad();
 
-    bool threshold_calc(int x, int y);
+    Vec<float> run_oscillator(int rev_per_second, float magnitude, float timer);
 
-    Vec<float> run_oscillator(int rev_per_second, float magnitude);
+    Vec<float> mouse_to_stick(float sense);
 
-    void mouse_to_stick(Vec<float>* bound_direction, float sense);
-
-    Vec<float> get_stick_mapping(Vec<float>* cumu_dir, VirtualKey binding, const std::unordered_map<VirtualKey, Vec<float>>& stick_bindings);
+    Vec<float> get_stick_mapping(VirtualKey binding, const std::unordered_map<VirtualKey, Vec<float>>& stick_bindings);
 
     Vec<float> key_to_stick(const std::unordered_map<VirtualKey, Vec<float>>& stick_bindings);
 
@@ -55,19 +46,15 @@ struct GamePad {
 
     void handle_input();
 
-    void send_outputs();
+    void handle_osc(float dt_ms, Vec<float>* ls_direction, Vec<float>* rs_direction);
+
+    void send_outputs(float dt_ms);
 
     void send_zeros();
 
     bool check_flagged_binding(std::string flag) const;
 
     int get_flagged_value(std::string flag) const;
-
-    void import_config(const char* file);
-
-    void export_config(const char* file);
-
-    void print_config();
 };
 
 #endif

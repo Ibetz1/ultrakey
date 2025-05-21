@@ -38,47 +38,6 @@ void* interception_handler(void* data) {
     return nullptr;
 }
 
-void* interception_monitor(void* data) {
-    MnkContext* context = (MnkContext*) data;
-
-    context->output_timer.begin();
-
-    context->mouse_outputs.with_front([&](MouseLerp& stroke) -> bool {
-        Vec<float> offset = {
-            .x = stroke.tot_dist.x + (stroke.targ_dist.x / stroke.time_ms) * context->output_timer.dt_ms,
-            .y = stroke.tot_dist.y + (stroke.targ_dist.y / stroke.time_ms) * context->output_timer.dt_ms
-        };
-
-        int mouse_dx = (int) offset.x - (int) stroke.tot_dist.x;
-        int mouse_dy = (int) offset.y - (int) stroke.tot_dist.y;
-
-        Vec<float> mouse_offset = { (float) mouse_dx, (float) mouse_dy };
-
-        if (mouse_offset.size() > 0.f) {
-            context->move_cursor((int) mouse_offset.x, (int) mouse_offset.y, INTERCEPTION_MOUSE_MOVE_RELATIVE);
-        }
-
-        stroke.tot_dist.add(offset);
-        stroke.accum_ms += context->output_timer.dt_ms;
-        stroke.tot_dist = offset;
-
-        if (stroke.accum_ms >= stroke.time_ms || stroke.tot_dist.size() >= stroke.targ_dist.size()) {
-            return true;
-        }
-
-        return false;
-    });
-
-    KeystrokeEvent key_stroke;
-    if (context->key_outputs.try_pop(key_stroke)) {
-        context->key_stroke(key_stroke.key, key_stroke.state);
-    }
-
-    context->output_timer.end(OUTPUT_TARGET_FPS);
-
-    return nullptr;
-}
-
 MnkContext::MnkContext() : mouse_events(ThreadedQueue<Vec<float>>()) {
     context = interception_create_context();
     interception_set_filter(context, interception_is_keyboard, INTERCEPTION_FILTER_KEY_DOWN | INTERCEPTION_FILTER_KEY_UP);
@@ -107,13 +66,6 @@ int MnkContext::handle_mouse(const InterceptionMouseStroke &mouseStroke) {
     int ret = key_block[VKEY_MOUSE];
     float dx = (float) mouseStroke.x;
     float dy = (float) mouseStroke.y;
-    float mag = sqrtf(dx * dx + dy * dy);
-
-    if (auto_thres(dx, dy)) {
-        dx = 0;
-        dy = 0;
-        ret = 1 - mag > 0;
-    }
 
     if (intercept) {
         mouse_events.push({
@@ -250,5 +202,39 @@ void MnkContext::key_stroke(VirtualKey key, int state) {
                 break;
             }
         }
+    }
+}
+
+void MnkContext::pop_events(float dt_ms) {
+
+    mouse_outputs.with_front([&](MouseLerp& stroke) -> bool {
+        Vec<float> offset = {
+            .x = stroke.tot_dist.x + (stroke.targ_dist.x / stroke.time_ms) * dt_ms,
+            .y = stroke.tot_dist.y + (stroke.targ_dist.y / stroke.time_ms) * dt_ms
+        };
+
+        int mouse_dx = (int) offset.x - (int) stroke.tot_dist.x;
+        int mouse_dy = (int) offset.y - (int) stroke.tot_dist.y;
+
+        Vec<float> mouse_offset = { (float) mouse_dx, (float) mouse_dy };
+
+        if (mouse_offset.size() > 0.f) {
+            move_cursor((int) mouse_offset.x, (int) mouse_offset.y, INTERCEPTION_MOUSE_MOVE_RELATIVE);
+        }
+
+        stroke.tot_dist.add(offset);
+        stroke.accum_ms += dt_ms;
+        stroke.tot_dist = offset;
+
+        if (stroke.accum_ms >= stroke.time_ms || stroke.tot_dist.size() >= stroke.targ_dist.size()) {
+            return true;
+        }
+
+        return false;
+    });
+
+    KeystrokeEvent stroke;
+    if (key_outputs.try_pop(stroke)) {
+        key_stroke(stroke.key, stroke.state);
     }
 }

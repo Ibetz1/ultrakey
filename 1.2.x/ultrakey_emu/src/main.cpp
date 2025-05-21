@@ -12,41 +12,35 @@ static char* config_path;
 void* emu_main(void* config) {
     run = true;
 
+    InterruptClock* clock = new InterruptClock();
     MnkContext* mnk_context = new MnkContext();
     GamePad* gamepad_context = new GamePad(mnk_context);
+    LuaContext* lua_context = new LuaContext(gamepad_context);
 
     if (config == nullptr) {
         LOGI("starting ULTRAKEY emulator (load defaults)");
     } else {
         LOGI("load ULTRAKEY emulator %s", (char*) config);
-        gamepad_context->import_config((char*) config);
+        gamepad_context->bindings.load_bindings((char*) config, lua_context);
     }
 
-    // gamepad_context->print_config();
+    TaskScheduler task_manager = TaskScheduler(1);
+    task_manager.push(interception_handler, mnk_context, run_mnk);
+    clock->push_interrupt(input_interrupt, 20000, lua_context);
+    clock->push_interrupt(output_interrupt, 2000, gamepad_context);
 
-    TaskScheduler mnk_scheduler = TaskScheduler(1);
-    mnk_scheduler.push(interception_handler, mnk_context, run_mnk);
-
-    TaskScheduler mnk_listener = TaskScheduler(1);
-    mnk_listener.push(interception_monitor, mnk_context);
-
-    TaskScheduler gamepad_scheduler = TaskScheduler(1);
-    gamepad_scheduler.push(output_handler, gamepad_context);
-
-    TaskScheduler vigem_scheduler = TaskScheduler(1);
-    vigem_scheduler.push(gamepad_handler, gamepad_context);
-
-    while (run) { }
+    while (run) {
+        clock->tick();
+    }
 
     LOGI("emulator stopped");
 
-    mnk_scheduler.stop();
-    mnk_listener.stop();
-    gamepad_scheduler.stop();
-    vigem_scheduler.stop();
+    task_manager.stop();
 
     delete mnk_context;
     delete gamepad_context;
+    delete lua_context;
+    delete clock;
 
     return nullptr;
 }
@@ -80,39 +74,47 @@ DLL_EXPORT void emu_stop_async() {
 #else
 
 int main(int argc, char* argv[]) {
-    WinSignal signals = WinSignal();
+    bool run = true;
+    
+    InterruptClock* clock = new InterruptClock();
     MnkContext* mnk_context = new MnkContext();
     GamePad* gamepad_context = new GamePad(mnk_context);
+    LuaContext* lua_context = new LuaContext(gamepad_context);
 
-    if (argc < 2) {
+    if (argc <= 1) {
         LOGI("starting ULTRAKEY emulator (load defaults)");
     } else {
         LOGI("load ULTRAKEY emulator %s", argv[1]);
-        gamepad_context->import_config(argv[1]);
+        gamepad_context->bindings.load_bindings(argv[1], lua_context);
     }
 
-    // gamepad_context->print_config();
+    TaskScheduler task_manager = TaskScheduler(1);
+    task_manager.push(interception_handler, mnk_context, run_mnk);
+    clock->push_interrupt(input_interrupt, 20000, lua_context);
+    clock->push_interrupt(output_interrupt, 2000, gamepad_context);
 
-    TaskScheduler mnk_scheduler = TaskScheduler(1);
-    mnk_scheduler.push(interception_handler, mnk_context, run_mnk);
+    while (run) {
+        clock->tick();
+    }
 
-    TaskScheduler mnk_listener = TaskScheduler(1);
-    mnk_listener.push(interception_monitor, mnk_context);
+    LOGI("emulator stopped");
 
-    TaskScheduler gamepad_scheduler = TaskScheduler(1);
-    gamepad_scheduler.push(output_handler, gamepad_context);
+    task_manager.stop();
 
-    TaskScheduler vigem_scheduler = TaskScheduler(1);
-    vigem_scheduler.push(gamepad_handler, gamepad_context);
+    delete mnk_context;
+    delete gamepad_context;
+    delete lua_context;
+    delete clock;
 
-    signals.add(SIGNAL_STOP, []() {
-        THROW("emulator stopped");
-    });
-    signals.start();
-    
-    LOGI("end main");
-    while (1) { }
     return 0;
 }
+
+/*
+    gamepad refactor:
+
+    diffuse stick from vigem main
+    make 2 threads listening for the key queue and mouse queue
+    run osc and keepalive from gamepad main
+*/
 
 #endif

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
 import 'package:ultrakey_ui/models/libraries.dart';
 import 'package:ultrakey_ui/theme.dart';
+import 'package:ultrakey_ui/widgets/styled_container.dart';
 
 class UltrakeyInstaller extends StatefulWidget {
   const UltrakeyInstaller({
@@ -28,8 +29,8 @@ class _UltrakeyInstallerState extends State<UltrakeyInstaller> {
 
   @override
   void initState() {
-    // requestAdmin();
-    // driverBitfield = fetchReqDrivers();
+    requestAdmin();
+    driverBitfield = fetchReqDrivers();
     super.initState();
   }
 
@@ -114,33 +115,32 @@ class _UltrakeyInstallerState extends State<UltrakeyInstaller> {
 
   @override
   Widget build(BuildContext context) {
-    return widget.child;
-    // if (hasInterception && hasVigembus) {
-    //   return widget.child;
-    // }
+    if (hasInterception && hasVigembus) {
+      return widget.child;
+    }
 
-    // return Column(
-    //   mainAxisAlignment: MainAxisAlignment.center,
-    //   children: [
-    //     Center(
-    //       child: StyledContainer(
-    //         maxWidth: 580,
-    //         height: 220,
-    //         child: Column(
-    //           mainAxisAlignment: MainAxisAlignment.center,
-    //           children: [
-    //             Icon(
-    //               Icons.install_desktop,
-    //               size: 64,
-    //               color: Theme.of(context).colorScheme.secondary,
-    //             ),
-    //             SizedBox(height: 35),
-    //             (needRestart) ? restartButton() : installButton(),
-    //           ],
-    //         ),
-    //       ),
-    //     ),
-    //   ],
-    // );
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Center(
+          child: StyledContainer(
+            maxWidth: 580,
+            height: 220,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.install_desktop,
+                  size: 64,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+                SizedBox(height: 35),
+                (needRestart) ? restartButton() : installButton(),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }

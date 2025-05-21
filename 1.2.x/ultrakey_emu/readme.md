@@ -1,0 +1,4 @@
+- investigate software crash on restart
+- still crashing randomly and fucking PC
+- fix multi binds
+- re-add packer with auto-updates

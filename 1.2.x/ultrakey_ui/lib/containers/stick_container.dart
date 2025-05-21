@@ -129,8 +129,10 @@ class _StickOptionsState extends State<StickOptions> {
                   child: Padding(
                     padding: WidgetRatios.widgetPadding(),
                     child: SliderContainer(
-                      value: Config.sensitivity,
+                      value: Config.sensitivity.clamp(1, 100),
                       label: "Sensitivity",
+                      minValue: 1,
+                      maxValue: 100,
                       update: (v) => _forwardEvent("sensitivity", v.floor()),
                     ),
                   ),
@@ -149,8 +151,10 @@ class _StickOptionsState extends State<StickOptions> {
             Padding(
               padding: WidgetRatios.widgetPadding(),
               child: SliderContainer(
-                value: Config.smoothing,
+                value: Config.smoothing.clamp(1, 100),
                 label: "Smoothing",
+                minValue: 1,
+                maxValue: 100,
                 update: (v) => _forwardEvent("smoothing", v.floor()),
               ),
             ),

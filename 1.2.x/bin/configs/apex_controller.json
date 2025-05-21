@@ -1,10 +1,10 @@
 {
    "keepalive": true,
    "passthrough": true,
-   "keepalive_speed": 50,
+   "keepalive_speed": 121,
    "stabilizer": true,
    "threshold": true,
-   "keepalive_strength": 0.2985555555555556,
+   "keepalive_strength": 0.3230555555555556,
    "left_analog_bindings": {
       "17": [
          0,
@@ -29,11 +29,10 @@
    "rs_binding": 94,
    "rt_binding": 95,
    "stabilizer_speed": 51,
-   "stabilizer_strength": 0.15,
-   "stick_sensitivity": 0.043166666666666666,
-   "stick_smoothing": 0.9583333333333334,
+   "stabilizer_strength": 0.05588888888888889,
+   "stick_sensitivity": 0.011890000000000001,
+   "stick_smoothing": 0.82,
    "scripts": [
-      "C:\\Users\\Ianbe.IANSPC\\Desktop\\ultrakey_flutter\\bin\\scripts\\jitter.lua",
       "C:\\Users\\Ianbe.IANSPC\\Desktop\\ultrakey_flutter\\bin\\scripts\\auto_loot.lua",
       "C:\\Users\\Ianbe.IANSPC\\Desktop\\ultrakey_flutter\\bin\\scripts\\superglide.lua"
    ],
@@ -42,11 +41,11 @@
       "56": 0
    },
    "tagged_bindings": {
-      "18": "LOOTING_BIND",
       "42": "SUPERGLIDE",
       "66": "LOW_BINDING",
       "67": "HIGH_BINDING",
-      "37": "SECOND_CROUCH"
+      "37": "SECOND_CROUCH",
+      "18": "LOOTING_BIND"
    },
    "value_bindings": {
       "LOOTING_SPAM_AFTER": 10,

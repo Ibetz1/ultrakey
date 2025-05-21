@@ -17,6 +17,7 @@
 #include <condition_variable>
 #include <time.h>
 #include <atomic>
+#include <inttypes.h>
 
 #include "xinput.h"
 #include "vigem/Client.h"
@@ -34,10 +35,10 @@ using json = nlohmann::json;
 #define LOGE(fmt, ...) do { printf("E: " fmt "\n", ##__VA_ARGS__); } while (0)
 #define THROW(fmt, ...) do { LOGE(__FILE__ ":%i " fmt, __LINE__, ##__VA_ARGS__); exit(1); } while (0)
 
-#define NS_TO_MS(ns) (float) ns / 1e6f
-
-#define OUTPUT_TARGET_FPS 20000
-#define LUA_TARGET_FPS 10000
+#define BURN_CYCLE __asm__ __volatile__("pause" ::: "memory")
+#define CLK_TIME_INTERVAL_LL 1'000'000'000ULL
+#define CLK_TIME_INTERVAL_F 1'000'000'000.f
+#define CLK_TIME_CONVERSION(v) ((float) v / CLK_TIME_INTERVAL_F) * 1000.f
 
 inline float fclampf(float val, float min, float max) {
     return fmaxf(fminf(val, max), min);
@@ -55,7 +56,7 @@ struct Movement {
     float magnitude;
 };
 
-struct LuaScript;
+struct LuaContext;
 
 #include "signals.hpp"
 #include "vector.hpp"

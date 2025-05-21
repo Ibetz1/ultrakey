@@ -5,7 +5,7 @@ bool run_mnk(void* data);
 
 void* interception_handler(void* data);
 
-void* interception_monitor(void* data);
+// void* interception_monitor(void* data);
 
 typedef std::function<bool(int, int)> threshold_calc;
 
@@ -24,7 +24,6 @@ struct KeystrokeEvent {
 };
 
 struct MnkContext {
-    Clock output_timer;
     InterceptionContext context = 0;
     InterceptionDevice device = 0;
     InterceptionStroke stroke = { 0 };
@@ -32,11 +31,9 @@ struct MnkContext {
     ThreadedQueue<MouseLerp> mouse_outputs;
     ThreadedQueue<KeystrokeEvent> key_outputs;
 
-    bool key_record[VKEY_MAX] = { 0 };
-    bool key_block[VKEY_MAX] = { 0 };
+    volatile bool key_record[VKEY_MAX] = { 0 };
+    volatile bool key_block[VKEY_MAX] = { 0 };
     bool intercept = false;
-
-    threshold_calc auto_thres = default_threshold_calc;
 
     MnkContext();
 
@@ -46,7 +43,7 @@ struct MnkContext {
 
     int handle_mouse(const InterceptionMouseStroke &mouseStroke);
 
-    void toggle_intercept(bool v) ;
+    void toggle_intercept(bool v);
 
     bool key_down(VirtualKey key) const;
     
@@ -59,6 +56,8 @@ struct MnkContext {
     void push_key(VirtualKey key, int state);
 
     void key_stroke(VirtualKey key, int state);
+
+    void pop_events(float dt_ms);
 };
 
 #endif

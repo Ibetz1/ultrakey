@@ -16,13 +16,13 @@ struct Bindings {
     bool enable_keepalive = false;
     bool enable_stabilizer = false;
     bool enable_threshold = false;
-    bool enable_passthrough = false;
+    bool enable_passthrough = true;
 
     // static keys
     VirtualKey lt_binding = VKEY_NONE;
     VirtualKey rt_binding = VKEY_NONE;
     VirtualKey ls_binding = VKEY_NONE;
-    VirtualKey rs_binding = VKEY_NONE;
+    VirtualKey rs_binding = VKEY_MOUSE;
 
     std::unordered_map<VirtualKey, Vec<float>> ls_analog_bindings;
     std::unordered_map<VirtualKey, Vec<float>> rs_analog_bindings;
@@ -31,6 +31,12 @@ struct Bindings {
     std::unordered_map<VirtualKey, std::string> tagged_bindings;
     std::unordered_map<std::string, int> value_bindings; 
     std::vector<std::string> scripts;
+
+    void load_bindings(const char* file, LuaContext* lua_context);
+
+    void export_bindings(const char* file);
+
+    void print_bindings();
 };
 
 #endif

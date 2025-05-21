@@ -1,17 +1,25 @@
 #ifndef _LUA_SCRIPT_HPP
 #define _LUA_SCRIPT_HPP
 
-struct LuaScript {
-    lua_State* L;
-    TaskScheduler* runner;
-    GamePad* gamepad;
-    Clock clock;
+struct LuaThread {
+    lua_State* thread;
+    int status;
+    uint64_t next_wake_time_ms = 0;
+};
 
-    LuaScript(const char* path, GamePad* gamepad);
-    
-    ~LuaScript();
-    
-    void run_main();
+struct LuaContext {
+    std::vector<LuaThread> scripts;
+    GamePad* gamepad;
+    lua_State* L;
+    bool run = false;
+
+    LuaContext(GamePad* gamepad);
+
+    ~LuaContext();
+
+    void add_script(const char* script_path);
+
+    void tick();
 };
 
 #endif

@@ -6,7 +6,7 @@ import 'package:path/path.dart' as p;
 const double huge = 999999999999999;
 const int numCols = 3;
 const int numSticks = 4;
-const int sliderRange = 360;
+const double sliderRange = 360;
 
 const String runtimeMode = "StaticExecutable"; // "PackedExecutable"
 
@@ -31,16 +31,18 @@ String stripTrailingNumber(String input) {
 double mapSlider(
   double val,
   double inMin,
-  double inMax,
-) =>
-    inMin + val * (inMax - inMin) / sliderRange;
+  double inMax, {
+  double range = sliderRange,
+}) =>
+    inMin + val * (inMax - inMin) / range;
 
 double unmapSlider(
   double val,
   double inMin,
-  double inMax,
-) =>
-    (val - inMin) * sliderRange / (inMax - inMin);
+  double inMax, {
+  double range = sliderRange,
+}) =>
+    (val - inMin) * range / (inMax - inMin);
 
 void printf(Object? obj) {
   if (kDebugMode) {
