@@ -4,7 +4,7 @@
    "keepalive_speed": 121,
    "stabilizer": true,
    "threshold": true,
-   "keepalive_strength": 0.3230555555555556,
+   "keepalive_strength": 0.29175,
    "left_analog_bindings": {
       "17": [
          0,
@@ -33,8 +33,8 @@
    "stick_sensitivity": 0.011890000000000001,
    "stick_smoothing": 0.82,
    "scripts": [
-      "C:\\Users\\Ianbe.IANSPC\\Desktop\\ultrakey_flutter\\bin\\scripts\\auto_loot.lua",
-      "C:\\Users\\Ianbe.IANSPC\\Desktop\\ultrakey_flutter\\bin\\scripts\\superglide.lua"
+      "E:\\Programming\\ultrakey\\1.2.x\\bin\\scripts\\auto_loot.lua",
+      "E:\\Programming\\ultrakey\\1.2.x\\bin\\scripts\\superglide.lua"
    ],
    "button_bindings": {},
    "toggle_bindings": {

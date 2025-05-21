@@ -279,24 +279,6 @@ LuaContext::~LuaContext() {
 }
 
 void LuaContext::add_script(const char* script_path) {
-    // lua_State* co = lua_newthread(L);
-
-    // if (luaL_loadfile(co, script_path) != LUA_OK) {
-    //     THROW("Lua load error: %s", lua_tostring(co, -1));
-    //     return;
-    // }
-    
-    // int nres = 0;
-    // int status = lua_resume(co, nullptr, 0, &nres);
-    
-    // uint64_t wake = 0;
-    // if (status == LUA_YIELD && nres == 1 && lua_isinteger(co, -1)) {
-    //     wake = get_time_ms() + lua_tointeger(co, -1);
-    //     lua_pop(co, 1);
-    // }
-    
-    // scripts.push_back({ co, status, wake });
-    // LOGI("added script %s", script_path);
     lua_State* co = lua_newthread(L);
 
     if (luaL_loadfile(co, script_path) != LUA_OK) {
@@ -310,7 +292,7 @@ void LuaContext::add_script(const char* script_path) {
 }
 
 void LuaContext::tick() {
-    uint64_t now = (uint64_t) CLK_TIME_CONVERSION(get_time_interval());
+    uint64_t now = get_time_interval() / 1'000'000;
     for (LuaThread& thread : scripts) {
         if (thread.status != LUA_YIELD)
             continue;
