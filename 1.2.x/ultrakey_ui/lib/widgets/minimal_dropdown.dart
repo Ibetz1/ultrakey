@@ -1,26 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:ultrakey_ui/models/utils.dart';
-import 'package:ultrakey_ui/theme.dart';
+import 'package:launcher/models/utils.dart';
+import 'package:launcher/theme.dart';
 
-class MinimalDropdown extends StatefulWidget {
+class MinimalDropdown<T> extends StatefulWidget {
   const MinimalDropdown({
     required this.items,
     this.initialValue,
     this.onChanged,
     this.expanded,
+    this.displayText,
     super.key,
   });
 
-  final List<String> items;
-  final String? initialValue;
+  final List<T> items;
+  final T? initialValue;
   final bool? expanded;
-  final void Function(String)? onChanged;
+  final void Function(T?)? onChanged;
+  final String Function(T)? displayText;
 
   @override
-  State<MinimalDropdown> createState() => _MinimalDropdownState();
+  State<MinimalDropdown> createState() => _MinimalDropdownState<T>();
 }
 
-class _MinimalDropdownState extends State<MinimalDropdown> {
+class _MinimalDropdownState<T> extends State<MinimalDropdown<T>> {
   @override
   void initState() {
     super.initState();
@@ -43,7 +45,7 @@ class _MinimalDropdownState extends State<MinimalDropdown> {
         data: Theme.of(context).copyWith(
           materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
-        child: DropdownButton<String>(
+        child: DropdownButton<T>(
           value: widget.initialValue ??
               (widget.items.isNotEmpty ? widget.items[0] : null),
           isExpanded: widget.expanded ?? false,
@@ -56,7 +58,7 @@ class _MinimalDropdownState extends State<MinimalDropdown> {
               value: item,
               child: Center(
                 child: Text(
-                  item,
+                  widget.displayText?.call(item) ?? "NONE",
                   softWrap: false,
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
@@ -64,7 +66,7 @@ class _MinimalDropdownState extends State<MinimalDropdown> {
             );
           }).toList(),
           onChanged: (value) {
-            widget.onChanged?.call(value!);
+            widget.onChanged?.call(value);
           },
         ),
       )),

@@ -1,43 +1,30 @@
 import 'package:flutter/material.dart';
-import 'package:ultrakey_ui/theme.dart';
-import 'package:ultrakey_ui/widgets/input_box.dart';
+import 'package:launcher/models/buttons.dart';
+import 'package:launcher/theme.dart';
+import 'package:launcher/widgets/input_box.dart';
 
-class InputCaptureGrid extends StatefulWidget {
+class InputCaptureGrid<K> extends StatefulWidget {
   const InputCaptureGrid({
-    required this.rows,
     required this.columns,
-    this.checkEnabled,
-    this.iconData = const {},
-    this.idTable = const [],
+    required this.iconData,
     this.values,
     this.onChanged,
     super.key,
   });
 
-  final int rows;
   final int columns;
   final List<List<String>>? values;
-  final Map<String, Widget>? iconData;
-  final List<String>? idTable;
-  final void Function(String, dynamic)? onChanged;
-  final bool Function(String, int)? checkEnabled;
+  final Map<K, Widget> iconData;
+  final void Function(K, VK, int)? onChanged;
 
   @override
-  State<InputCaptureGrid> createState() => _InputCaptureGridState();
+  State<InputCaptureGrid> createState() => _InputCaptureGridState<K>();
 }
 
-class _InputCaptureGridState extends State<InputCaptureGrid> {
+class _InputCaptureGridState<K> extends State<InputCaptureGrid<K>> {
   @override
   void initState() {
     super.initState();
-  }
-
-  String? _getId(int row, int col) {
-    if (widget.idTable != null && row < (widget.idTable?.length ?? 0)) {
-      return "${(widget.idTable?[row] ?? "UNKNOWN")}$col";
-    }
-
-    return null;
   }
 
   String _getDisplayName(int row, int col) {
@@ -49,11 +36,6 @@ class _InputCaptureGridState extends State<InputCaptureGrid> {
     return "";
   }
 
-  void _updateValue(int row, int col, int event) {
-    String? id = _getId(row, col);
-    widget.onChanged?.call(id ?? "NONE", event);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -62,11 +44,11 @@ class _InputCaptureGridState extends State<InputCaptureGrid> {
         children: [
           Column(
             mainAxisSize: MainAxisSize.min,
-            children: List.generate(widget.rows, (row) {
-              if (widget.iconData != null && row < widget.iconData!.length) {
+            children: List.generate(widget.iconData.keys.length, (row) {
+              if (row < widget.iconData.length) {
                 return Padding(
                   padding: const EdgeInsets.all(4),
-                  child: widget.iconData![widget.idTable?[row] ?? 0]!,
+                  child: widget.iconData.values.elementAt(row),
                 );
               }
               return Padding(
@@ -79,7 +61,7 @@ class _InputCaptureGridState extends State<InputCaptureGrid> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: List.generate(
-                widget.rows,
+                widget.iconData.length,
                 (row) => Row(
                   children: List.generate(
                     widget.columns,
@@ -88,10 +70,11 @@ class _InputCaptureGridState extends State<InputCaptureGrid> {
                         padding: const EdgeInsets.all(4),
                         child: InputCaptureBox(
                           displayText: _getDisplayName(row, col),
-                          onChanged: (event) => _updateValue(row, col, event),
-                          conflict: !(widget.checkEnabled?.call(
-                                  widget.idTable?[row] ?? "UNKNOWN", col) ??
-                              true),
+                          onChanged: (event) => widget.onChanged?.call(
+                            widget.iconData.keys.elementAt(row),
+                            event,
+                            col,
+                          ),
                         ),
                       ),
                     ),

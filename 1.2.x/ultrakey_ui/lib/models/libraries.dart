@@ -5,9 +5,23 @@ import 'package:ffi/ffi.dart';
 final DynamicLibrary _ultrakeyLib = DynamicLibrary.open('ultrakey_emu.dll');
 final DynamicLibrary _driverToolsLib = DynamicLibrary.open('driver_tools.dll');
 
-typedef EmuMainC = Void Function(Pointer<Utf8> config);
-typedef EmuMainDart = void Function(Pointer<Utf8> config);
+// starts emulator with config
+typedef EmuRunConfigC = Void Function(Pointer<Utf8> config);
+typedef EmuRunConfigDart = void Function(Pointer<Utf8> config);
 
+// starts emulator with no config
+typedef EmuRunC = Void Function();
+typedef EmuRunDart = void Function();
+
+// pushes config to emulator
+typedef EmuPushConfigC = Void Function(Pointer<Utf8> config);
+typedef EmuPushConfigDart = void Function(Pointer<Utf8> config);
+
+// pushes script source to emulator
+typedef EmuPushScriptC = Void Function(Pointer<Utf8> script);
+typedef EmuPushScriptDart = void Function(Pointer<Utf8> script);
+
+// stops emulator
 typedef EmuStopC = Void Function();
 typedef EmuStopDart = void Function();
 
@@ -26,8 +40,19 @@ typedef RequestAdminDart = void Function();
 typedef RestartPcC = Void Function();
 typedef RestartPcDart = void Function();
 
-final EmuMainDart emuMain = _ultrakeyLib
-    .lookup<NativeFunction<EmuMainC>>('emu_run_async')
+final EmuRunConfigDart emuRunConfig = _ultrakeyLib
+    .lookup<NativeFunction<EmuRunConfigC>>('emu_run_config_async')
+    .asFunction();
+
+final EmuRunDart emuRun =
+    _ultrakeyLib.lookup<NativeFunction<EmuRunC>>('emu_run_async').asFunction();
+
+final EmuPushConfigDart emuPushConfig = _ultrakeyLib
+    .lookup<NativeFunction<EmuPushConfigC>>('emu_push_config')
+    .asFunction();
+
+final EmuPushScriptDart emuPushScript = _ultrakeyLib
+    .lookup<NativeFunction<EmuPushScriptC>>('emu_push_script')
     .asFunction();
 
 final EmuStopDart emuStop = _ultrakeyLib

@@ -23,6 +23,7 @@ void File::read_path(const char* path) {
     FILE* file = fopen(path, "rb");
     if (!file) {
         THROW("invalid file path %s", path);
+        return;
     }
     
     struct stat file_stats;
@@ -30,6 +31,7 @@ void File::read_path(const char* path) {
     if (fstat(fileno(file), &file_stats) != 0) {
         fclose(file);
         THROW("failed to get file stats for path %s", path);
+        return;
     }
 
     this->len = (size_t) file_stats.st_size;
@@ -37,6 +39,7 @@ void File::read_path(const char* path) {
 
     if (!this->buffer) {
         THROW("no mem");
+        return;
     }
 
     size_t bytes_read = fread(this->buffer, 1, this->len, file);
@@ -45,6 +48,7 @@ void File::read_path(const char* path) {
 
     if (bytes_read != this->len) {
         THROW("invalid file read, size misalignment");
+        return;
     }
 
     LOGI("file data read success");
@@ -56,6 +60,7 @@ void File::write_buffer(const char* path, BYTE* allocated, size_t len) {
     FILE* file = fopen(path, "wb+");
     if (!file) {
         THROW("invalid file path %s", path);
+        return;
     }
     
     size_t written = fwrite(allocated, 1, len, file);

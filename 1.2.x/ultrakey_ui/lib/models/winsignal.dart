@@ -1,6 +1,6 @@
 import 'dart:ffi';
 import 'package:ffi/ffi.dart';
-import 'package:ultrakey_ui/models/utils.dart';
+import 'package:launcher/models/utils.dart';
 import 'package:win32/win32.dart';
 
 final kernel32 = DynamicLibrary.open('kernel32.dll');

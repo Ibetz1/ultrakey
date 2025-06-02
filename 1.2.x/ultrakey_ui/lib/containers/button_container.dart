@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:ultrakey_ui/models/buttons.dart';
-import 'package:ultrakey_ui/models/config.dart';
-import 'package:ultrakey_ui/models/utils.dart';
-import 'package:ultrakey_ui/theme.dart';
-import 'package:ultrakey_ui/widgets/input_grid.dart';
-import 'package:ultrakey_ui/widgets/styled_container.dart';
+import 'package:launcher/models/buttons.dart';
+import 'package:launcher/models/config.dart';
+import 'package:launcher/models/utils.dart';
+import 'package:launcher/theme.dart';
+import 'package:launcher/widgets/input_grid.dart';
+import 'package:launcher/widgets/styled_container.dart';
 
 class ButtonBindings extends StatefulWidget {
   const ButtonBindings({
@@ -19,11 +19,14 @@ class ButtonBindings extends StatefulWidget {
 
 class _ButtonBindingsState extends State<ButtonBindings> {
   late StreamSubscription _configListener;
+  Config cfg = ConfigLoader.getSelected() ?? Config();
 
   @override
   void initState() {
-    _configListener = Config.listen(
-      (_) => setState(() {}),
+    _configListener = ConfigController.listen(
+      (_) => setState(() {
+        cfg = ConfigLoader.getSelected() ?? Config();
+      }),
     );
 
     super.initState();
@@ -33,10 +36,6 @@ class _ButtonBindingsState extends State<ButtonBindings> {
   void dispose() {
     _configListener.cancel();
     super.dispose();
-  }
-
-  void _forwardEvent(String id, dynamic v) {
-    Config.updateStream.push(id: id, value: v);
   }
 
   @override
@@ -51,99 +50,17 @@ class _ButtonBindingsState extends State<ButtonBindings> {
             Text("Button Bindings"),
             SingleChildScrollView(
               child: InputCaptureGrid(
-                rows: GamepadCode.idTable.length,
-                checkEnabled: (id, col) =>
-                    Config.countValueInstances(id, col) <= 1,
-                columns: 3,
-                values: [
-                  List.generate(
-                    numCols,
-                    (col) => VirtualKey.displayName(
-                      Config.getGrid("a", col),
-                    ),
-                  ),
-                  List.generate(
-                    numCols,
-                    (col) => VirtualKey.displayName(
-                      Config.getGrid("b", col),
-                    ),
-                  ),
-                  List.generate(
-                    numCols,
-                    (col) => VirtualKey.displayName(
-                      Config.getGrid("x", col),
-                    ),
-                  ),
-                  List.generate(
-                    numCols,
-                    (col) => VirtualKey.displayName(
-                      Config.getGrid("y", col),
-                    ),
-                  ),
-                  List.generate(
-                    numCols,
-                    (col) => VirtualKey.displayName(
-                      Config.getGrid("dpadUp", col),
-                    ),
-                  ),
-                  List.generate(
-                    numCols,
-                    (col) => VirtualKey.displayName(
-                      Config.getGrid("dpadDown", col),
-                    ),
-                  ),
-                  List.generate(
-                    numCols,
-                    (col) => VirtualKey.displayName(
-                      Config.getGrid("dpadLeft", col),
-                    ),
-                  ),
-                  List.generate(
-                    numCols,
-                    (col) => VirtualKey.displayName(
-                      Config.getGrid("dpadRight", col),
-                    ),
-                  ),
-                  List.generate(
-                    numCols,
-                    (col) => VirtualKey.displayName(
-                      Config.getGrid("start", col),
-                    ),
-                  ),
-                  List.generate(
-                    numCols,
-                    (col) => VirtualKey.displayName(
-                      Config.getGrid("back", col),
-                    ),
-                  ),
-                  List.generate(
-                    numCols,
-                    (col) => VirtualKey.displayName(
-                      Config.getGrid("leftThumb", col),
-                    ),
-                  ),
-                  List.generate(
-                    numCols,
-                    (col) => VirtualKey.displayName(
-                      Config.getGrid("rightThumb", col),
-                    ),
-                  ),
-                  List.generate(
-                    numCols,
-                    (col) => VirtualKey.displayName(
-                      Config.getGrid("leftShoulder", col),
-                    ),
-                  ),
-                  List.generate(
-                    numCols,
-                    (col) => VirtualKey.displayName(
-                      Config.getGrid("rightShoulder", col),
-                    ),
-                  ),
-                ],
-                onChanged: _forwardEvent,
+                columns: cfg.buttonBindings.columns,
+                values: generateKeyGrid(
+                  cfg.buttonBindings,
+                  GamepadCode.icons.keys,
+                ),
+                onChanged: (row, binding, col) {
+                  ConfigController.updateStream.push(() {
+                    cfg.buttonBindings.emplace(row, binding, col);
+                  });
+                },
                 iconData: GamepadCode.icons,
-                idTable: GamepadCode.idTable,
               ),
             ),
           ],

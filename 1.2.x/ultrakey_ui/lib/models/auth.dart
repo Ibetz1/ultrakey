@@ -11,9 +11,9 @@ import 'package:pointycastle/digests/sha256.dart';
 import 'package:pointycastle/key_derivators/api.dart';
 import 'package:pointycastle/key_derivators/pbkdf2.dart';
 import 'package:pointycastle/macs/hmac.dart';
-import 'package:ultrakey_ui/models/utils.dart';
+import 'package:launcher/models/utils.dart';
 import 'package:mime/mime.dart';
-import 'package:ultrakey_ui/models/value_update_event.dart';
+import 'package:launcher/models/value_update_event.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:win32/win32.dart';
 
@@ -121,8 +121,9 @@ class AuthStorage {
     final keyBytes = deriveKey(hardwareId);
     final key = encrypt.Key(keyBytes);
 
-    final encrypter =
-        encrypt.Encrypter(encrypt.AES(key, mode: encrypt.AESMode.cbc));
+    final encrypter = encrypt.Encrypter(
+      encrypt.AES(key, mode: encrypt.AESMode.cbc),
+    );
 
     try {
       final decrypted =
@@ -218,10 +219,17 @@ class AuthServer {
       if (token != null && token.isNotEmpty) {
         printf("Access token received: $token");
         String? discordToken = await fetchDiscordToken(token);
-        updateStream.push(id: "gotToken", value: discordToken);
+        updateStream.push(() {
+          state = AuthState.awaitingToken;
+          validateToken(discordToken).then((_) => notify());
+        });
+
         await _serveHtml(request, 'assets/success.html', HttpStatus.ok);
       } else {
-        updateStream.push(id: "gotToken", value: null);
+        updateStream.push(() {
+          state = AuthState.awaitingToken;
+          validateToken(null).then((_) => notify());
+        });
         await _serveHtml(request, 'assets/failed.html', HttpStatus.badRequest);
       }
 
@@ -340,5 +348,48 @@ class AuthServer {
       printf("Token is invalid. Status code: ${response.statusCode}");
       return false;
     }
+  }
+
+  static Future<void> validateToken(String? token) async {
+    if (token == null || !await isTokenValid(token)) {
+      state = AuthState.invalidToken;
+      currentToken = null;
+      return;
+    }
+
+    List<String> guilds = await getGuilds(token);
+
+    if (!guilds.contains(guildId)) {
+      state = AuthState.nolicense;
+      currentToken = token;
+      return;
+    }
+
+    List<String> roles = await getSubscribed(
+      guildId,
+      token,
+    );
+
+    bool isOwner = roles.contains(ownerId);
+    // bool isPremium = roles.contains(premiumId);
+    bool isGifted = roles.contains(giftedId);
+    bool isRevoked = roles.contains(revokedId);
+    bool isLifetime = roles.contains(lifetimeId);
+    bool isPlus = roles.contains(ukPlusId);
+
+    currentToken = token;
+    AuthStorage.saveToken(token);
+
+    if (isRevoked) {
+      state = AuthState.banned;
+      return;
+    }
+
+    if (isOwner || isLifetime || isPlus || isGifted) {
+      state = AuthState.validToken;
+      return;
+    }
+
+    state = AuthState.nolicense;
   }
 }

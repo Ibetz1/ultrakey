@@ -19,6 +19,8 @@ struct LuaContext {
 
     void add_script(const char* script_path);
 
+    void add_source(const char* script_source);
+
     void tick();
 };
 

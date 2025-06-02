@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:ultrakey_ui/containers/config_container.dart';
-import 'package:ultrakey_ui/tabs/ui_config_control.dart';
-import 'package:ultrakey_ui/tabs/ui_script_control.dart';
-import 'package:ultrakey_ui/widgets/config_state.dart';
-import 'package:ultrakey_ui/widgets/nav_disable.dart';
+import 'package:launcher/containers/config_container.dart';
+import 'package:launcher/tabs/ui_config_control.dart';
+import 'package:launcher/tabs/ui_script_control.dart';
+import 'package:launcher/widgets/config_state.dart';
+import 'package:launcher/widgets/nav_disable.dart';
 
 class UltrakeyMain extends StatelessWidget {
   const UltrakeyMain({super.key});

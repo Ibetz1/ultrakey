@@ -1,10 +1,7 @@
 #include "main.hpp"
 
-void Bindings::load_bindings(const char* file_path, LuaContext* lua_context) {
-    File file;
-    file.read_path(file_path);
-    std::string json_data = (char*) file.data();
-    json j = json::parse(json_data);
+void Bindings::load_json(const char* json_source) {
+    json j = json::parse(std::string(json_source));
 
     if (j.contains("left_analog_bindings")) {
         for (const auto& [key, val] : j["left_analog_bindings"].items()) {
@@ -48,13 +45,11 @@ void Bindings::load_bindings(const char* file_path, LuaContext* lua_context) {
         }
     }
 
-    scripts = j["scripts"].get<std::vector<std::string>>();
     lt_binding = (VirtualKey)(j.value("lt_binding", lt_binding));
     rt_binding = (VirtualKey)(j.value("rt_binding", rt_binding));
     ls_binding = (VirtualKey)(j.value("ls_binding", ls_binding));
     rs_binding = (VirtualKey)(j.value("rs_binding", rs_binding));
 
-    enable_threshold = (bool)(j.value("threshold",    enable_threshold));
     enable_passthrough= (bool) j.value("passthrough", enable_passthrough);
     enable_stabilizer = (bool) j.value("stabilizer",  enable_stabilizer);
     enable_keepalive = (bool) j.value("keepalive",    enable_keepalive);
@@ -65,6 +60,21 @@ void Bindings::load_bindings(const char* file_path, LuaContext* lua_context) {
     keepalive_strength = (float) (j.value("keepalive_strength", keepalive_strength));
     stabilizer_speed = (float) (j.value("stabilizer_speed", stabilizer_speed));
     keepalive_speed = (float) (j.value("keepalive_speed", keepalive_speed));
+}
+
+void Bindings::load_bindings(const char* file_path) {
+    File file;
+    file.read_path(file_path);
+    load_json((const char*) file.data());
+}
+
+void Bindings::load_scripts(const char* config_path, LuaContext* lua_context) {
+    File file;
+    file.read_path(config_path);
+    std::string json_data = (char*) file.data();
+    json j = json::parse(json_data);
+
+    scripts = j["scripts"].get<std::vector<std::string>>();
 
     for (std::string script_path : scripts) {
         lua_context->add_script(script_path.c_str());
@@ -105,7 +115,6 @@ void Bindings::export_bindings(const char* file_path) {
     j["rs_binding"] = rs_binding;
 
     // toggles
-    j["threshold"] = enable_threshold;
     j["passthrough"] = enable_passthrough;
     j["stabilizer"] = enable_stabilizer;
     j["keepalive"] = enable_keepalive;
@@ -164,7 +173,6 @@ void Bindings::print_bindings() {
     LOGI("ls_binding = %i", ls_binding);
     LOGI("rs_binding = %i", rs_binding);
 
-    LOGI("threshold = %i", enable_threshold);
     LOGI("passthrough = %i", enable_passthrough);
     LOGI("stabilizer = %i", enable_stabilizer);
     LOGI("keepalive = %i", enable_keepalive);

@@ -3,8 +3,7 @@
    "passthrough": true,
    "keepalive_speed": 121,
    "stabilizer": true,
-   "threshold": true,
-   "keepalive_strength": 0.29175,
+   "keepalive_strength": 0.2277777777777778,
    "left_analog_bindings": {
       "17": [
          0,
@@ -24,7 +23,7 @@
       ]
    },
    "right_analog_bindings": {},
-   "ls_binding": 99,
+   "ls_binding": 101,
    "lt_binding": 96,
    "rs_binding": 94,
    "rt_binding": 95,
@@ -34,7 +33,8 @@
    "stick_smoothing": 0.82,
    "scripts": [
       "E:\\Programming\\ultrakey\\1.2.x\\bin\\scripts\\auto_loot.lua",
-      "E:\\Programming\\ultrakey\\1.2.x\\bin\\scripts\\superglide.lua"
+      "E:\\Programming\\ultrakey\\1.2.x\\bin\\scripts\\superglide.lua",
+      "E:\\Programming\\ultrakey\\1.2.x\\bin\\scripts\\jitter.lua"
    ],
    "button_bindings": {},
    "toggle_bindings": {

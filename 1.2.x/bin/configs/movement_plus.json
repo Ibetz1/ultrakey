@@ -3,7 +3,6 @@
    "passthrough": false,
    "keepalive_speed": 50,
    "stabilizer": false,
-   "threshold": false,
    "keepalive_strength": 0.3,
    "left_analog_bindings": {},
    "right_analog_bindings": {},

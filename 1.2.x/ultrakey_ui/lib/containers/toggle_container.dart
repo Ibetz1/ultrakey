@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:ultrakey_ui/models/buttons.dart';
-import 'package:ultrakey_ui/models/config.dart';
-import 'package:ultrakey_ui/models/utils.dart';
-import 'package:ultrakey_ui/theme.dart';
-import 'package:ultrakey_ui/widgets/input_grid.dart';
-import 'package:ultrakey_ui/widgets/styled_container.dart';
+import 'package:launcher/models/buttons.dart';
+import 'package:launcher/models/config.dart';
+import 'package:launcher/models/utils.dart';
+import 'package:launcher/theme.dart';
+import 'package:launcher/widgets/input_grid.dart';
+import 'package:launcher/widgets/styled_container.dart';
 
 class ToggleBindings extends StatefulWidget {
   const ToggleBindings({
@@ -19,11 +19,14 @@ class ToggleBindings extends StatefulWidget {
 
 class _ToggleBindingsState extends State<ToggleBindings> {
   late StreamSubscription _configListener;
+  Config cfg = ConfigLoader.getSelected() ?? Config();
 
   @override
   void initState() {
-    _configListener = Config.listen(
-      (_) => setState(() {}),
+    _configListener = ConfigController.listen(
+      (_) => setState(() {
+        cfg = ConfigLoader.getSelected() ?? Config();
+      }),
     );
 
     super.initState();
@@ -35,33 +38,8 @@ class _ToggleBindingsState extends State<ToggleBindings> {
     super.dispose();
   }
 
-  void _forwardEvent(String id, dynamic v) {
-    Config.updateStream.push(id: id, value: v);
-  }
-
   @override
   Widget build(BuildContext context) {
-    List<String> idTable = [
-      "toggleTap",
-      "toggleHold",
-      "untoggleHold",
-    ];
-
-    Map<String, Widget> iconData = {
-      "toggleTap": SizedBox(
-        width: 60,
-        child: Center(child: Text("Tap")),
-      ),
-      "toggleHold": SizedBox(
-        width: 60,
-        child: Center(child: Text("Hold")),
-      ),
-      "untoggleHold": SizedBox(
-        width: 60,
-        child: Center(child: Text("Untoggle")),
-      ),
-    };
-
     return Padding(
       padding: WidgetRatios.widgetPadding(),
       child: StyledContainer(
@@ -71,33 +49,17 @@ class _ToggleBindingsState extends State<ToggleBindings> {
           children: [
             Text("Toggle Bindings"),
             InputCaptureGrid(
-              rows: idTable.length,
-              onChanged: _forwardEvent,
-              checkEnabled: (id, col) =>
-                  Config.countValueInstances(id, col) <= 1,
-              columns: 3,
-              values: [
-                List.generate(
-                  numCols,
-                  (col) => VirtualKey.displayName(
-                    Config.getGrid("toggleTap", col),
-                  ),
-                ),
-                List.generate(
-                  numCols,
-                  (col) => VirtualKey.displayName(
-                    Config.getGrid("toggleHold", col),
-                  ),
-                ),
-                List.generate(
-                  numCols,
-                  (col) => VirtualKey.displayName(
-                    Config.getGrid("untoggleHold", col),
-                  ),
-                )
-              ],
-              iconData: iconData,
-              idTable: idTable,
+              onChanged: (row, binding, col) {
+                ConfigController.updateStream.push(() {
+                  cfg.toggleBindings.emplace(row, binding, col);
+                });
+              },
+              columns: cfg.toggleBindings.columns,
+              values: generateKeyGrid(
+                cfg.toggleBindings,
+                ToggleMode.icons.keys,
+              ),
+              iconData: ToggleMode.icons,
             ),
           ],
         ),

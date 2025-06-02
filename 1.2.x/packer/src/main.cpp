@@ -1,260 +1,182 @@
-#include "main.hpp"
+#include <windows.h>
+#include <iphlpapi.h>
+#include <shlobj.h>
+#include <stdio.h>
+#include <stdint.h>
 
-#define CMDLINE_BUFFER_SIZE 2048
+#pragma comment(lib, "iphlpapi.lib")
+#pragma comment(lib, "shell32.lib")
 
-char* build_command_line_from_args(int argc, char* argv[], int startIndex) {
-    static char cmdline[CMDLINE_BUFFER_SIZE];
-    size_t offset = 0;
+#define CACHE_FILE "cache.txt"
 
-    if (argc <= startIndex) {
-        return nullptr;
+const uint8_t STATIC_KEY[] = { 0xA5, 0x6C, 0x3E, 0xB1, 0x19, 0xDE, 0x87, 0x44 };
+
+bool patch_version_info(const char* exe_path, const char* new_name) {
+    DWORD handle = 0;
+    DWORD size = GetFileVersionInfoSizeA(exe_path, &handle);
+    if (size == 0) return false;
+
+    void* data = malloc(size);
+    if (!data) return false;
+
+    if (!GetFileVersionInfoA(exe_path, 0, size, data)) {
+        free(data);
+        return false;
     }
 
-    if (startIndex > 0 && argv[0]) {
-        const char* arg0 = argv[0];
-        int needsQuotes = (strchr(arg0, ' ') != NULL || strchr(arg0, '\t') != NULL);
+    // Get translation info
+    struct LANGANDCODEPAGE {
+        WORD wLanguage;
+        WORD wCodePage;
+    } *lpTranslate;
 
-        if (needsQuotes && offset < CMDLINE_BUFFER_SIZE - 1) {
-            cmdline[offset++] = '"';
-        }
-
-        while (*arg0 && offset < CMDLINE_BUFFER_SIZE - 1) {
-            cmdline[offset++] = *arg0++;
-        }
-
-        if (needsQuotes && offset < CMDLINE_BUFFER_SIZE - 1) {
-            cmdline[offset++] = '"';
-        }
-
-        cmdline[offset++] = ' ';
+    UINT cbTranslate = 0;
+    if (!VerQueryValueA(data, "\\VarFileInfo\\Translation", (LPVOID*)&lpTranslate, &cbTranslate) || cbTranslate == 0) {
+        free(data);
+        return false;
     }
 
-    for (int i = startIndex; i < argc; ++i) {
-        const char* arg = argv[i];
+    char subblock[64];
+    char* value = NULL;
+    UINT len;
 
-        if (i > startIndex && offset < CMDLINE_BUFFER_SIZE - 1) {
-            cmdline[offset++] = ' ';
-        }
-
-        int needsQuotes = (strchr(arg, ' ') != NULL || strchr(arg, '\t') != NULL);
-        if (needsQuotes && offset < CMDLINE_BUFFER_SIZE - 1) {
-            cmdline[offset++] = '"';
-        }
-
-        while (*arg && offset < CMDLINE_BUFFER_SIZE - 1) {
-            cmdline[offset++] = *arg++;
-        }
-
-        if (needsQuotes && offset < CMDLINE_BUFFER_SIZE - 1) {
-            cmdline[offset++] = '"';
-        }
+    HANDLE hUpdate = BeginUpdateResourceA(exe_path, FALSE);
+    if (!hUpdate) {
+        free(data);
+        return false;
     }
 
-    if (offset >= CMDLINE_BUFFER_SIZE - 1) {
-        return nullptr;
+    for (UINT i = 0; i < cbTranslate / sizeof(struct LANGANDCODEPAGE); ++i) {
+        sprintf(subblock, "\\StringFileInfo\\%04x%04x\\FileDescription", lpTranslate[i].wLanguage, lpTranslate[i].wCodePage);
+        UpdateResourceA(hUpdate, (LPCSTR) RT_STRING, subblock, MAKELANGID(lpTranslate[i].wLanguage, lpTranslate[i].wCodePage),
+                        (LPVOID)new_name, (DWORD)(strlen(new_name) + 1));
+
+        sprintf(subblock, "\\StringFileInfo\\%04x%04x\\OriginalFilename", lpTranslate[i].wLanguage, lpTranslate[i].wCodePage);
+        UpdateResourceA(hUpdate, (LPCSTR) RT_STRING, subblock, MAKELANGID(lpTranslate[i].wLanguage, lpTranslate[i].wCodePage),
+                        (LPVOID)new_name, (DWORD)(strlen(new_name) + 1));
     }
 
-    cmdline[offset] = '\0';
-    return cmdline;
-}
-
-bool runPEFromTempBytes(const uint8_t* exeData, size_t exeSize, char* args = nullptr) {
-    TCHAR tempPath[MAX_PATH] = "./";
-    // GetTempPath(MAX_PATH, tempPath);
-
-    TCHAR tempFile[MAX_PATH];
-    GetTempFileName(tempPath, TEXT("PE_"), 0, tempFile);
-
-    HANDLE hFile = CreateFile(
-        tempFile,
-        GENERIC_WRITE | GENERIC_READ,
-        0,
-        nullptr,
-        CREATE_ALWAYS,
-        FILE_ATTRIBUTE_TEMPORARY,
-        nullptr
-    );
-
-    if (hFile == INVALID_HANDLE_VALUE) {
-        THROW("Failed to create temp file. Error: ", GetLastError());
-    }
-
-    DWORD written;
-    if (!WriteFile(hFile, exeData, (DWORD)exeSize, &written, nullptr)) {
-        THROW("Write failed. Error: ", GetLastError());
-        CloseHandle(hFile);
-    }
-
-    FlushFileBuffers(hFile);
-    CloseHandle(hFile);
-
-    char cwd[MAX_PATH];
-    GetCurrentDirectoryA(MAX_PATH, cwd);
-
-    STARTUPINFO si = { sizeof(si) };
-    PROCESS_INFORMATION pi;
-    if (!CreateProcess(
-        tempFile,
-        args,
-        nullptr,
-        nullptr,
-        FALSE,
-        0,
-        nullptr,
-        cwd,
-        &si,
-        &pi
-    )) {
-        THROW("Process launch failed. Error: ", GetLastError());
-    }
-
-    HANDLE job = CreateJobObject(nullptr, nullptr);
-    if (job) {
-        JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = {};
-        jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
-        SetInformationJobObject(job, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli));
-        AssignProcessToJobObject(job, pi.hProcess);
-    }
-
-    LOGI("process created %i", pi.dwProcessId);
-
-    WaitForSingleObject(pi.hProcess, INFINITE);
-
-    CloseHandle(pi.hProcess);
-    CloseHandle(pi.hThread);
-    DeleteFile(tempFile);
-
-    LOGI("runner finished");
+    EndUpdateResourceA(hUpdate, FALSE);
+    free(data);
     return true;
 }
 
-uint16_t u16_string_hash(const char* str) {
-    uint32_t hash = 5381;
-    while (*str) {
-        hash = ((hash << 5) + hash) ^ (uint8_t)(*str++);
+void xor_encrypt(const char* input, char* output_hex, size_t key_len) {
+    size_t len = strlen(input);
+    for (size_t i = 0; i < len; ++i) {
+        uint8_t encrypted = input[i] ^ STATIC_KEY[i % key_len];
+        sprintf(output_hex + (i * 2), "%02X", encrypted);
     }
-
-    return (uint16_t)((hash >> 16) ^ (hash & 0xFFFF));
+    output_hex[len * 2] = '\0';
 }
 
-const char* get_basename(const char* path) {
-    const char* slash1 = strrchr(path, '/');
-    const char* slash2 = strrchr(path, '\\');
-    const char* last_slash = slash1 > slash2 ? slash1 : slash2;
-
-    const char* base_name = last_slash ? last_slash + 1 : path;
-
-    LOGI("got basename %s\n", base_name);
-
-    return base_name;
-}
-
-void sign_executables(const char* out_path, const char* p1, const char* p2) {
-    size_t size1;
-    uint8_t* bytes1 = import_binary(p1, &size1);
-
-    size_t size2;
-    uint8_t* bytes2 = import_binary(p2, &size2);
-
-    uint16_t p1_hash = u16_string_hash(get_basename(p1));
-    uint16_t p2_hash = u16_string_hash(get_basename(p2));
-
-    if (p1_hash == p2_hash) {
-        THROW("hash collision is file paths");
+void xor_decrypt(const char* input_hex, char* output, size_t key_len) {
+    size_t len = strlen(input_hex) / 2;
+    for (size_t i = 0; i < len; ++i) {
+        char byte_str[3] = { input_hex[i * 2], input_hex[i * 2 + 1], '\0' };
+        uint8_t byte = (uint8_t)strtoul(byte_str, NULL, 16);
+        output[i] = byte ^ STATIC_KEY[i % key_len];
     }
-
-    LOGI("%i %s %i %s\n", p1_hash, get_basename(p1), p2_hash, get_basename(p2));
-
-    uint32_t tags;
-    tags = ((uint32_t)p1_hash << 16) | p2_hash;
-
-    size_t merged_len;
-    uint8_t* merged = merge_binaries(bytes1, bytes2, size1, size2, &merged_len, tags);
-
-    export_binary(out_path, merged, merged_len);
-    
-    free(bytes1);
-    free(bytes2);
-    free(merged);
+    output[len] = '\0';
 }
 
-void run_bytes(uint8_t* bytes, size_t size, const char* target, char* args = nullptr) {
-    uint16_t target_hash = u16_string_hash(get_basename(target));
+uint32_t hash(const char* str, const uint8_t* mac) {
+    uint32_t h = 5381;
+    while (*str) h = ((h << 5) + h) + *str++;
+    for (int i = 0; i < 6; ++i) h = ((h << 5) + h) + mac[i];
+    return h;
+}
 
-    uint8_t* extracted_1;
-    uint8_t* extracted_2;
-    size_t extracted_len_1;
-    size_t extracted_len_2;
-    uint32_t sig = extract_binaries(bytes, &extracted_1, &extracted_2, &extracted_len_1, &extracted_len_2);
+bool get_mac_address(uint8_t* mac_out) {
+    IP_ADAPTER_INFO adapterInfo[16];
+    DWORD buflen = sizeof(adapterInfo);
+    if (GetAdaptersInfo(adapterInfo, &buflen) == NO_ERROR) {
+        memcpy(mac_out, adapterInfo[0].Address, 6);
+        return true;
+    }
+    return false;
+}
 
-    uint16_t left_hash = (uint16_t) (sig >> 16) & 0xFFFF;
-    uint16_t right_hash  = (uint16_t) (sig) & 0xFFFF;
-
-    if (left_hash == target_hash) {
-        free(extracted_2);
-        
-        runPEFromTempBytes(extracted_1, extracted_len_1, args);
-        printf("\n");
-
-        free(extracted_1);
+void generate_bin_name(char* out, size_t len) {
+    const char* static_name = "ultrakey";
+    uint8_t mac[6] = {};
+    if (!get_mac_address(mac)) {
+        strncpy(out, "ultrakey_fallback", len);
         return;
     }
 
-    if (right_hash == target_hash) {
-        free(extracted_1);
-        runPEFromTempBytes(extracted_2, extracted_len_2, args);
-        printf("\n");
+    uint32_t h = hash(static_name, mac);
+    snprintf(out, len, "%08X.exe", h);
+}
 
-        free(extracted_2);
+void cache_temp(const char* bin_path) {
+    char encrypted[MAX_PATH * 2];
+    xor_encrypt(bin_path, encrypted, sizeof(STATIC_KEY));
+
+    FILE* f = fopen(CACHE_FILE, "w");
+    if (f) {
+        fprintf(f, "%s", encrypted);
+        fclose(f);
+    }
+}
+
+void clean_temp_cache() {
+    char encrypted[MAX_PATH * 2];
+    FILE* f = fopen(CACHE_FILE, "r");
+    if (f) {
+        if (fgets(encrypted, sizeof(encrypted), f)) {
+            char decrypted[MAX_PATH];
+            xor_decrypt(encrypted, decrypted, sizeof(STATIC_KEY));
+            DeleteFileA(decrypted);
+        }
+        fclose(f);
+        DeleteFileA(CACHE_FILE);
+    }
+}
+
+bool copy_binary(const char* src, const char* dest) {
+    return CopyFileA(src, dest, FALSE);
+}
+
+void run_binary(const char* bin_path, size_t len) {
+    char cwd[MAX_PATH];
+    GetCurrentDirectoryA(MAX_PATH, cwd);
+
+    char bin_name[64];
+    generate_bin_name(bin_name, sizeof(bin_name));
+
+    char full_cwd_bin[MAX_PATH];
+    snprintf(full_cwd_bin, MAX_PATH, "%s\\%s", cwd, bin_name);
+
+    clean_temp_cache();
+
+    if (!copy_binary(bin_path, full_cwd_bin)) {
+        printf("Failed to copy binary to CWD.\n");
         return;
     }
 
-    THROW("invalid embedded signature %04x %04x %04x", left_hash, right_hash, target_hash);
-}
+    if (!patch_version_info(full_cwd_bin, bin_name)) {
+        printf("Warning: failed to update version info.\n");
+    }
 
-void invalid_args() {
-    printf(STR("valid params:\n"));
-    printf(STR("pack <binA> <binB> <packed>\n"));
-    printf(STR("run <packed> <sig>\n"));
-    THROW("invalid arguments");
+    cache_temp(full_cwd_bin);
+
+    ShellExecuteA(NULL, "open", full_cwd_bin, NULL, NULL, SW_SHOW);
 }
 
 int main(int argc, char* argv[]) {
-    char packed_binary[sizeof(mdcr_table_dfipt)] = { 0 };
-    obf_decrypt(packed_binary, mdcr_table_dfipt, sizeof(mdcr_table_dfipt) - 1, 0xA5);
-
-    char ui_binary[sizeof(mdcr_table_dfopt)] = { 0 };
-    obf_decrypt(ui_binary, mdcr_table_dfopt, sizeof(mdcr_table_dfopt) - 1, 0x4A);
-
-    LOGI("ultrakey runner starting");
-
-    if (argc > 3 && strcmp(argv[1], STR("pack")) == 0) {
-        sign_executables(packed_binary, argv[2], argv[3]);
+    if (argc < 2) {
+        const char default_name[] = "packed.bin";
+        run_binary(default_name, sizeof(default_name));
         return 0;
     }
 
-    LOGI("finding packer");
-
-    FILE* temp = fopen(packed_binary, "r");
-    if (temp == nullptr) {
-        THROW("cannot find packed binaries");
-    } else {
-        fclose(temp);
-    }
-
-    size_t out_len;
-    uint8_t* out_bin = import_binary(packed_binary, &out_len);
-
-    LOGI("running executables");
-    
-    if (argc >= 2) {
-        char* args = build_command_line_from_args(argc, argv, 2);
-        run_bytes(out_bin, out_len, argv[1], args);
-        free(out_bin);
-        return 0;
-    }
-
-    char* args = build_command_line_from_args(argc, argv, 1);
-    run_bytes(out_bin, out_len, ui_binary, args);
+    run_binary(argv[1], strlen(argv[1]));
     return 0;
 }
+
+/*
+    compress entire compilation
+    decompress compilation into temp dir
+    run decompressed version
+*/

@@ -21,7 +21,7 @@ void* input_interrupt(Interrupt* interrupt) {
     frames++;
 
     if (time > 1000.f) {
-        printf("IN-IRQ-FPS: %i, %llu, %llu\n", frames, interrupt->clock, interrupt->last_cycle);
+        LOGI("IN-IRQ-FPS: %i, %llu, %llu\n", frames, interrupt->clock, interrupt->last_cycle);
         time = 0.f;
         frames = 0;
     }
@@ -50,7 +50,7 @@ void* output_interrupt(Interrupt* interrupt) {
     frames++;
 
     if (time > 1000.f) {
-        printf("OUT-IRQ-FPS: %i, %llu, %llu\n", frames, interrupt->clock, interrupt->last_cycle);
+        LOGI("OUT-IRQ-FPS: %i, %llu, %llu\n", frames, interrupt->clock, interrupt->last_cycle);
         time = 0.f;
         frames = 0;
     }
@@ -62,11 +62,13 @@ GamePad::GamePad(MnkContext* mnk_context) : mnk_context(mnk_context) {
     client = vigem_alloc();
     if (client == nullptr) {
         THROW("Failed to allocate ViGEm client!\n");
+        return;
     }
 
     if (vigem_connect(client) != VIGEM_ERROR_NONE) {
         vigem_free(client);
         THROW("Failed to connect to ViGEm!\n");
+        return;
     }
 
     pad = vigem_target_x360_alloc();
@@ -74,6 +76,7 @@ GamePad::GamePad(MnkContext* mnk_context) : mnk_context(mnk_context) {
         vigem_disconnect(client);
         vigem_free(client);
         THROW("Failed to allocate Xbox 360 controller!");
+        return;
     }
 
     if (vigem_target_add(client, pad) != VIGEM_ERROR_NONE) {
@@ -81,6 +84,7 @@ GamePad::GamePad(MnkContext* mnk_context) : mnk_context(mnk_context) {
         vigem_disconnect(client);
         vigem_free(client);
         THROW("Failed to add virtual controller!\n");
+        return;
     }
 }
 
@@ -128,24 +132,27 @@ Vec<float> GamePad::get_stick_mapping(
 Vec<float> GamePad::key_to_stick(const std::unordered_map<VirtualKey, Vec<float>>& stick_bindings) {
     Vec<float> direction = { 0 };
 
-    for (auto & [binding, dir] : stick_bindings) {
-        if (mnk_context->key_down(binding)) {
+    for (auto & [key, dir] : stick_bindings) {
+        if (mnk_context->key_down(key)) {
             direction.add(dir);
         }
+
+        mnk_context->block_key(key, mnk_context->key_block[key] || bindings.enable_passthrough);
     }
 
     return direction;
 }
 
 void GamePad::handle_buttons() {
+    button_presses = 0;
+
     for (auto &[key, binding] : bindings.button_bindings)
     {
+
         if (binding == BCODE_PASS)
         {
             continue;
         }
-
-        button_presses &= ~binding;
 
         if (mnk_context->key_down(key))
         {
@@ -216,7 +223,7 @@ void GamePad::handle_input() {
 
     mnk_context->block_key(bindings.rt_binding, bindings.enable_passthrough);
     mnk_context->block_key(bindings.lt_binding, bindings.enable_passthrough);
-    mnk_context->block_key(bindings.ls_binding, bindings.enable_passthrough);
+    // mnk_context->block_key(bindings.ls_binding, bindings.enable_passthrough);
     mnk_context->block_key(bindings.rs_binding, bindings.enable_passthrough);
 }
 
@@ -279,6 +286,7 @@ void GamePad::send_outputs(float dt_ms) {
 
     if (vigem_target_x360_update(client, pad, report) != VIGEM_ERROR_NONE) {
         THROW("Failed to update controller state!\n" );
+        return;
     }
 
     float ls_decay = 0.f;
@@ -295,6 +303,7 @@ void GamePad::send_zeros() {
     ZeroMemory(&report, sizeof(XUSB_REPORT));
     if (vigem_target_x360_update(client, pad, report) != VIGEM_ERROR_NONE) {
         THROW("Failed to update controller state!\n" );
+        return;
     }
 }
 

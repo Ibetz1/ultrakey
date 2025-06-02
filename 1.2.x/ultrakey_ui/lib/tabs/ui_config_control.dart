@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:ultrakey_ui/containers/button_container.dart';
-import 'package:ultrakey_ui/containers/stick_container.dart';
-import 'package:ultrakey_ui/containers/toggle_container.dart';
-import 'package:ultrakey_ui/containers/trigger_container.dart';
+import 'package:launcher/containers/button_container.dart';
+import 'package:launcher/containers/stick_container.dart';
+import 'package:launcher/containers/toggle_container.dart';
+import 'package:launcher/containers/trigger_container.dart';
 
 class UiConfigControls extends StatelessWidget {
   const UiConfigControls({super.key});

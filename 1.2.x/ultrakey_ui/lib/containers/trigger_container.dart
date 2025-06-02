@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:ultrakey_ui/models/assets.dart';
-import 'package:ultrakey_ui/models/buttons.dart';
-import 'package:ultrakey_ui/models/config.dart';
-import 'package:ultrakey_ui/theme.dart';
-import 'package:ultrakey_ui/widgets/input_grid.dart';
-import 'package:ultrakey_ui/widgets/styled_container.dart';
+import 'package:launcher/models/buttons.dart';
+import 'package:launcher/models/config.dart';
+import 'package:launcher/models/utils.dart';
+import 'package:launcher/theme.dart';
+import 'package:launcher/widgets/input_grid.dart';
+import 'package:launcher/widgets/styled_container.dart';
 
 class TriggerBindings extends StatefulWidget {
   const TriggerBindings({
@@ -19,11 +19,14 @@ class TriggerBindings extends StatefulWidget {
 
 class _TriggerBindingsState extends State<TriggerBindings> {
   late StreamSubscription _configListener;
+  Config cfg = ConfigLoader.getSelected() ?? Config();
 
   @override
   void initState() {
-    _configListener = Config.listen(
-      (_) => setState(() {}),
+    _configListener = ConfigController.listen(
+      (_) => setState(() {
+        cfg = ConfigLoader.getSelected() ?? Config();
+      }),
     );
 
     super.initState();
@@ -35,22 +38,8 @@ class _TriggerBindingsState extends State<TriggerBindings> {
     super.dispose();
   }
 
-  void _forwardEvent(String id, dynamic v) {
-    Config.updateStream.push(id: id, value: v);
-  }
-
   @override
   Widget build(BuildContext context) {
-    List<String> idTable = [
-      "leftTrigger",
-      "rightTrigger",
-    ];
-
-    Map<String, Widget> iconData = {
-      "leftTrigger": leftTriggerImage,
-      "rightTrigger": rightTriggerImage,
-    };
-
     return Padding(
       padding: WidgetRatios.widgetPadding(),
       child: StyledContainer(
@@ -59,27 +48,17 @@ class _TriggerBindingsState extends State<TriggerBindings> {
           children: [
             Text("Trigger Bindings"),
             InputCaptureGrid(
-              rows: idTable.length,
-              columns: 1,
-              checkEnabled: (id, col) =>
-                  Config.countValueInstances(id, col) <= 1,
-              values: [
-                List.generate(
-                  1,
-                  (col) => VirtualKey.displayName(
-                    Config.getGrid("leftTrigger", col),
-                  ),
-                ),
-                List.generate(
-                  1,
-                  (col) => VirtualKey.displayName(
-                    Config.getGrid("rightTrigger", col),
-                  ),
-                ),
-              ],
-              iconData: iconData,
-              idTable: idTable,
-              onChanged: _forwardEvent,
+              columns: cfg.triggerBindings.columns,
+              values: generateKeyGrid(
+                cfg.triggerBindings,
+                GamepadTrigger.icons.keys,
+              ),
+              iconData: GamepadTrigger.icons,
+              onChanged: (row, binding, col) {
+                ConfigController.updateStream.push(() {
+                  cfg.triggerBindings.emplace(row, binding, col);
+                });
+              },
             ),
           ],
         ),

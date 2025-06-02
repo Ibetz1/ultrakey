@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ultrakey_ui/models/buttons.dart';
-import 'package:ultrakey_ui/models/utils.dart';
+import 'package:launcher/models/buttons.dart';
+import 'package:launcher/models/utils.dart';
 
 class InputCaptureBox extends StatefulWidget {
   const InputCaptureBox({
@@ -17,7 +17,7 @@ class InputCaptureBox extends StatefulWidget {
   final bool conflict;
   final String? displayText;
   final String? id;
-  final void Function(int)? onChanged;
+  final void Function(VK)? onChanged;
 
   @override
   State<InputCaptureBox> createState() => _InputCaptureBoxState();
@@ -29,10 +29,12 @@ class _InputCaptureBoxState extends State<InputCaptureBox> {
   @override
   void initState() {
     super.initState();
-    HardwareKeyboard.instance.addHandler((e) => _handleEvent(
-          e.logicalKey.keyId,
-          keyDown: e is KeyDownEvent,
-        ));
+    HardwareKeyboard.instance.addHandler(
+      (e) => _handleEvent(
+        e.logicalKey.keyId,
+        keyDown: e is KeyDownEvent,
+      ),
+    );
     _focusNode.addListener(() {
       setState(() {});
     });
@@ -43,16 +45,16 @@ class _InputCaptureBoxState extends State<InputCaptureBox> {
     if (!keyDown) return false;
     if (!widget.enabled) return false;
 
-    int remappedId = VirtualKey.fromLogicalKey(keyId);
-    if (remappedId == -1) {
+    VK remapped = VK.fromLogicalKey(keyId);
+    if (remapped == VK.keyNone) {
       return false;
     }
 
-    if (remappedId == VirtualKey.keyBackspace.value) {
-      remappedId = VirtualKey.keyNone.value;
+    if (remapped == VK.keyBackspace) {
+      remapped = VK.keyNone;
     }
 
-    widget.onChanged?.call(remappedId);
+    widget.onChanged?.call(remapped);
 
     return false;
   }

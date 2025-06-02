@@ -121,6 +121,7 @@ void TaskScheduler::push(task_callback callback, void* context, task_condition r
 
     if (pthread_create(&thread, NULL, task_wrapper, data) != 0) {
         THROW("failed to start thread");
+        return;
     }
 
     threads.push_back(thread);

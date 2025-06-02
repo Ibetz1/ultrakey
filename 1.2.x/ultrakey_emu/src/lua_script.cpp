@@ -106,6 +106,8 @@ std::unordered_map<std::string, VirtualKey> key_ref_enum = {
     { "MOUSE_RB" , VKEY_MOUSE_RB },
     { "MOUSE_MB" , VKEY_MOUSE_MB },
     { "MOUSE_MW" , VKEY_MOUSE_MW },
+    { "MOUSE_4" , VKEY_MOUSE_4 },
+    { "MOUSE_5" , VKEY_MOUSE_5 },
     { "MOUSE", VKEY_MOUSE },
     { "KEYBOARD", VKEY_KEYBOARD },
 };
@@ -135,6 +137,7 @@ LuaContext* lua_get_context(lua_State* L) {
 
     if (context == nullptr) {
         THROW("could not find script context");
+        return nullptr;
     }
 
     return context;
@@ -150,6 +153,10 @@ int lua_press_key(lua_State* L) {
     int key_code = luaL_checkinteger(L, 1);
     LuaContext* context = lua_get_context(L);
 
+    if (context == nullptr) {
+        return 0;
+    }
+
     context->gamepad->mnk_context->push_key((VirtualKey) key_code, INTERCEPTION_KEY_DOWN);
 
     return 0;
@@ -159,6 +166,10 @@ int lua_release_key(lua_State* L) {
     int key_code = luaL_checkinteger(L, 1);
     LuaContext* context = lua_get_context(L);
 
+    if (context == nullptr) {
+        return 0;
+    }
+
     context->gamepad->mnk_context->push_key((VirtualKey) key_code, INTERCEPTION_KEY_UP);
 
     return 0;
@@ -167,6 +178,10 @@ int lua_release_key(lua_State* L) {
 int lua_key_down(lua_State* L) {
     int key_code = luaL_checkinteger(L, 1);
     LuaContext* context = lua_get_context(L);
+
+    if (context == nullptr) {
+        return 0;
+    }
 
     bool key_down = context->gamepad->mnk_context->key_down((VirtualKey) key_code);
 
@@ -180,6 +195,10 @@ int lua_lerp_mouse(lua_State* L) {
     int time = luaL_checkinteger(L, 3);
     LuaContext* context = lua_get_context(L);
 
+    if (context == nullptr) {
+        return 0;
+    }
+
     context->gamepad->mnk_context->move_mouse({(float) dx, (float) dy}, time);
     return 0;
 }
@@ -187,6 +206,10 @@ int lua_lerp_mouse(lua_State* L) {
 int lua_block_key(lua_State* L) {
     int binding = luaL_checkinteger(L, 1);
     LuaContext* context = lua_get_context(L);
+
+    if (context == nullptr) {
+        return 0;
+    }
 
     if (!lua_isboolean(L, 2)) {
         return luaL_error(L, "Unvalid type, expecing boolean");
@@ -204,6 +227,10 @@ int lua_binding_down(lua_State* L) {
     const char* binding = luaL_checklstring(L, 1, &size);
     LuaContext* context = lua_get_context(L);
 
+    if (context == nullptr) {
+        return 0;
+    }
+
     bool key_down = context->gamepad->check_flagged_binding(binding);
 
     lua_pushboolean(L, key_down);
@@ -215,6 +242,10 @@ int lua_binding_value(lua_State* L) {
     const char* binding = luaL_checklstring(L, 1, &size);
     LuaContext* context = lua_get_context(L);
 
+    if (context == nullptr) {
+        return 0;
+    }
+
     int val = context->gamepad->get_flagged_value(binding);
 
     lua_pushinteger(L, val);
@@ -225,6 +256,10 @@ int lua_binding_key(lua_State* L) {
     size_t size;
     const char* binding = luaL_checklstring(L, 1, &size);
     LuaContext* context = lua_get_context(L);
+
+    if (context == nullptr) {
+        return 0;
+    }
 
     for (auto& [key, val] : context->gamepad->bindings.tagged_bindings) {
         if (val == std::string(binding)) {
@@ -291,11 +326,47 @@ void LuaContext::add_script(const char* script_path) {
     LOGI("added script %s", script_path);
 }
 
+void LuaContext::add_source(const char* script_source) {
+    lua_State* co = lua_newthread(L);
+
+    if (luaL_loadstring(co, script_source) != LUA_OK) {
+        THROW("Lua load error: %s", lua_tostring(co, -1));
+        return;
+    }
+
+    // Push thread into list, unstarted
+    scripts.push_back({ co, LUA_YIELD, 0 });
+    LOGI("added source script");
+}
+
+static uint64_t accum = 0;
+
 void LuaContext::tick() {
+    static uint64_t prev_now = 0;
+    bool rollover = false;
     uint64_t now = get_time_interval() / 1'000'000;
+    
+    if (accum > 1000) {
+        LOGI("%i\n", now);
+        accum = 0;
+    }
+    
+    if (now < prev_now) {
+        LOGI("scripts rolling over");
+        rollover = true;
+    }
+    
+    accum += now - prev_now;
+    prev_now = now;
+
     for (LuaThread& thread : scripts) {
         if (thread.status != LUA_YIELD)
             continue;
+
+        if (rollover) {
+            thread.next_wake_time_ms = now;
+            continue;
+        }
 
         if (now >= thread.next_wake_time_ms) {
             int nres = 0;
@@ -311,6 +382,7 @@ void LuaContext::tick() {
             } else {
                 THROW("lua error: %s", lua_tostring(thread.thread, -1));
                 lua_pop(thread.thread, 1);
+                return;
             }
         }
     }

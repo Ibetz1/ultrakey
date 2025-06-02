@@ -1,10 +1,9 @@
 {
-   "keepalive": true,
+   "keepalive": false,
    "passthrough": true,
    "keepalive_speed": 50,
-   "stabilizer": true,
-   "threshold": true,
-   "keepalive_strength": 0.2985555555555556,
+   "stabilizer": false,
+   "keepalive_strength": 0.3,
    "left_analog_bindings": {
       "17": [
          0,
@@ -14,41 +13,27 @@
          -1,
          0
       ],
-      "31": [
+      "32": [
          0,
          -1
-      ],
-      "32": [
-         1,
-         0
       ]
    },
    "right_analog_bindings": {},
-   "ls_binding": 99,
+   "ls_binding": 101,
    "lt_binding": 96,
    "rs_binding": 94,
    "rt_binding": 95,
-   "stabilizer_speed": 51,
-   "stabilizer_strength": 0.05,
-   "stick_sensitivity": 0.005,
-   "stick_smoothing": 0.9,
-   "scripts": [
-      "C:\\Users\\Ianbe.IANSPC\\Desktop\\ultrakey_flutter\\ultrakey_emu\\scripts\\script1.lua"
-   ],
+   "stabilizer_speed": 120,
+   "stabilizer_strength": 0.032,
+   "stick_sensitivity": 0.24,
+   "stick_smoothing": 0.95,
+   "scripts": [],
    "button_bindings": {},
    "toggle_bindings": {
       "56": 0
    },
-   "tagged_bindings": {
-      "18": "LOOTING_BIND",
-      "42": "SUPERGLIDE",
-      "66": "LOW_BINDING",
-      "67": "HIGH_BINDING",
-      "37": "SECOND_CROUCH"
-   },
+   "tagged_bindings": {},
    "value_bindings": {
-      "LOOTING_SPAM_AFTER": 10,
-      "JITTER_SMOOTHING": 3,
-      "JITTER_STRENGTH": 20
+      "LOOTING_SPAM_AFTER": 0
    }
 }

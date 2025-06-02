@@ -1,21 +1,27 @@
 import 'package:ffi/ffi.dart';
-import 'package:ultrakey_ui/models/libraries.dart';
-import 'package:ultrakey_ui/models/utils.dart';
+import 'package:launcher/models/libraries.dart';
+import 'package:launcher/models/utils.dart';
 
 class UltrakeyRunner {
   static bool running = false;
 
-  static void start(String config) {
+  static void start(String configJson, Map<String, String> scriptSource) {
     try {
       emuStop();
-      final configUtf8 = config.toNativeUtf8();
-      emuMain(configUtf8);
+      final configUtf8 = configJson.toNativeUtf8();
+
+      emuRun();
+      emuPushConfig(configJson.toNativeUtf8());
+
+      for (String source in scriptSource.values) {
+        emuPushScript(source.toNativeUtf8());
+      }
+
       malloc.free(configUtf8);
       running = true;
     } catch (e) {
       printf("error starting emulator $e");
     }
-
   }
 
   static void stop() {

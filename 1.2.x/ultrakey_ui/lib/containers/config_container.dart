@@ -1,11 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:ultrakey_ui/models/auth.dart';
-import 'package:ultrakey_ui/models/config.dart';
-import 'package:ultrakey_ui/models/runner.dart';
-import 'package:ultrakey_ui/theme.dart';
-import 'package:ultrakey_ui/widgets/minimal_dropdown.dart';
-import 'package:ultrakey_ui/widgets/styled_container.dart';
+import 'package:launcher/models/auth.dart';
+import 'package:launcher/models/config.dart';
+import 'package:launcher/models/runner.dart';
+import 'package:launcher/theme.dart';
+import 'package:launcher/widgets/minimal_dropdown.dart';
+import 'package:launcher/widgets/styled_container.dart';
 
 class StateControls extends StatefulWidget {
   const StateControls({super.key});
@@ -20,14 +20,9 @@ class _StateControlsState extends State<StateControls> {
   @override
   void initState() {
     super.initState();
-    _configListener = Config.listen((_) {
+    _configListener = ConfigController.listen((_) {
       setState(() {});
     });
-    ConfigLoader.refreshConfigList().then(
-      (v) => _selectConfig(
-        ConfigLoader.getSelectedConfig(),
-      ),
-    );
   }
 
   @override
@@ -36,77 +31,74 @@ class _StateControlsState extends State<StateControls> {
     super.dispose();
   }
 
-  void _forwardEvent(String id, dynamic v) {
-    Config.updateStream.push(id: id, value: v);
-  }
-
   Future<void> _startEmu() async {
-    await _saveConfig();
+    // await _saveConfig();
 
-    UltrakeyRunner.start(
-      ConfigLoader.getSelectedConfigPath(),
-    );
+    // await ConfigLoader.runSelected();
 
-    _forwardEvent("emuState", UltrakeyRunner.running);
+    // _forwardEvent("emuState", UltrakeyRunner.running);
   }
 
   Future<void> _stopEmu() async {
-    UltrakeyRunner.stop();
+    // UltrakeyRunner.stop();
 
-    _forwardEvent("emuState", UltrakeyRunner.running);
+    // _forwardEvent("emuState", UltrakeyRunner.running);
   }
 
   Future<void> _createConfig() async {
     final name = await _showNameDialog('Create Config');
     if (name == null || name.isEmpty) return;
 
-    final success = await ConfigLoader.createConfig(name);
+    final bool success = await ConfigLoader.create(name);
     if (!success) {
-      _showError('A config with that name already exists.');
+      _showError('Error creating config');
     }
-    _forwardEvent("createConfig", name);
+
+    ConfigController.notify();
   }
 
   Future<void> _saveConfig() async {
-    final success = await ConfigLoader.saveConfig();
+    if (ConfigLoader.selected == null) return;
+
+    final bool success = ConfigLoader.save(ConfigLoader.selected!);
     if (!success) {
-      _showError('A config with that name already exists.');
+      _showError('Error saving config.');
     }
-    _forwardEvent("_saveConfig", null);
+
+    ConfigController.notify();
   }
 
   Future<void> _renameConfig() async {
-    final current = ConfigLoader.getSelectedConfig();
-    if (current == null) return;
+    if (ConfigLoader.selected == null) return;
 
     final newName = await _showNameDialog('Rename Config');
-    if (newName == null || newName.isEmpty) return;
-
-    final success = await ConfigLoader.renameConfig(current, newName);
-    if (!success) {
-      _showError('Rename failed. A config with that name may already exist.');
+    if (newName == null || newName.isEmpty || ConfigLoader.selected == null) {
+      return;
     }
 
-    _forwardEvent("renameConfig", [current, newName]);
+    final success = await ConfigLoader.rename(ConfigLoader.selected!, newName);
+    if (!success) {
+      _showError('Error renaming config');
+    }
+
+    ConfigController.notify();
   }
 
   Future<void> _deleteConfig() async {
-    final current = ConfigLoader.getSelectedConfig();
-    if (current == null) return;
+    if (ConfigLoader.selected == null) return;
 
-    final success = await ConfigLoader.deleteConfig(current);
+    final success = ConfigLoader.delete(ConfigLoader.selected!);
     if (!success) {
       _showError('Cannot delete config.');
     }
 
-    _forwardEvent("deleteConfig", current);
+    ConfigController.notify();
   }
 
-  void _selectConfig(String? name) async {
-    ConfigLoader.setSelectedConfig(name);
-    await ConfigLoader.load();
-    await ScriptLoader.syncScriptVars();
-    _forwardEvent("selectConfig", name);
+  void _selectConfig(Config? cfg) async {
+    ConfigController.updateStream.push(() {
+      ConfigLoader.setSelected(cfg);
+    });
   }
 
   Future<String?> _showNameDialog(String title) async {
@@ -153,7 +145,10 @@ class _StateControlsState extends State<StateControls> {
                   padding: WidgetRatios.widgetPadding(scale: 0.5),
                   child: IconButton(
                     onPressed: () {
-                      AuthServer.updateStream.push(id: "logout", value: null);
+                      AuthServer.updateStream.push(() {
+                        AuthStorage.delToken();
+                        AuthServer.state = AuthState.awaitingLogin;
+                      });
                     },
                     icon: Icon(
                       Icons.logout,
@@ -165,11 +160,12 @@ class _StateControlsState extends State<StateControls> {
                   padding: WidgetRatios.widgetPadding(scale: 0.5),
                   child: SizedBox(
                     width: 400,
-                    child: MinimalDropdown(
+                    child: MinimalDropdown<Config>(
                       expanded: true,
-                      items: ConfigLoader.getConfigs(),
+                      items: ConfigLoader.list(),
+                      displayText: (v) => v.name,
                       onChanged: _selectConfig,
-                      initialValue: ConfigLoader.getSelectedConfig(),
+                      initialValue: ConfigLoader.getSelected(),
                     ),
                   ),
                 ),

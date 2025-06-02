@@ -1,29 +1,26 @@
 # ultrakey_ui
 
-<!-- package into runner (with packer sig) -->
-re-add configs
-ship it
+- add export config button
+    - show a menu with a server ID and a roll ID
+        - if server ID and roll ID, sign the config with the roll ID and
+        embed it as a signed header, then attach the server ID to the top unsigned
+        - if server ID and no roll ID or vice versa, error
+        - if no server ID and no roll ID, attach NULL for the server ID and sign it with 0s
 
+- add import config button
+    - seach for .ukbundle files on the PC
+    - once imported, copy the file into the configs folder and validate
+    - on boot, iterate through the signed configs and unsign/validate them into memory
+        - throw an in-app popup on error and skip the import
+    - also iterate through unsigned configs and load them into the same memory format
 
-UI:
-- UI asthetic rework
-- automatic driver installation
-    - checks drivers on launch and installs them if necessary
-- added advanced stick settings
-    - stick smoothing and sensitivity
-    - stabilizer controls
-    - keepalive controls
-- improved sign in and authorization
-- enhanced security
-- configs are now basic json files
-- scripts shared accross all configs
-- start/stop controls improved
+- add option to extract source code with a key from imported configs
 
-Emulator:
-- full rewrite
-- better stick control with smoothing for better compatibility
-- higher polling rate
-    - 2,000hz output polling (was 600hz)
-    - 20,000hz internal polling (was 600hz)
-- thread volatility fix (improves consistency accross frame rates)
-- better stabilizer and keepalive (less shake)
+- add in runtime wrapper that extracts bundles which have been loaded onto github releases
+    include:
+    - drivers
+    - data
+    - assets
+    - dlls
+    - launcher.exe
+

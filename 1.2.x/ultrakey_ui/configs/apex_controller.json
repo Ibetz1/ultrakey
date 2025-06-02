@@ -3,7 +3,6 @@
    "passthrough": true,
    "keepalive_speed": 121,
    "stabilizer": true,
-   "threshold": true,
    "keepalive_strength": 0.2277777777777778,
    "left_analog_bindings": {
       "17": [
@@ -24,17 +23,17 @@
       ]
    },
    "right_analog_bindings": {},
-   "ls_binding": 99,
+   "ls_binding": 101,
    "lt_binding": 96,
    "rs_binding": 94,
    "rt_binding": 95,
    "stabilizer_speed": 51,
    "stabilizer_strength": 0.05588888888888889,
    "stick_sensitivity": 0.011890000000000001,
-   "stick_smoothing": 0.82,
+   "stick_smoothing": 0.73,
    "scripts": [
-      "C:\\Users\\Ianbe.IANSPC\\Desktop\\ultrakey_flutter\\ultrakey_ui\\scripts\\auto_loot.lua",
-      "C:\\Users\\Ianbe.IANSPC\\Desktop\\ultrakey_flutter\\ultrakey_ui\\scripts\\superglide.lua"
+      "E:\\Programming\\ultrakey\\1.2.x\\ultrakey_ui\\scripts\\auto_loot.lua",
+      "E:\\Programming\\ultrakey\\1.2.x\\ultrakey_ui\\scripts\\superglide.lua"
    ],
    "button_bindings": {},
    "toggle_bindings": {
@@ -51,5 +50,6 @@
       "LOOTING_SPAM_AFTER": 10,
       "JITTER_SMOOTHING": 3,
       "JITTER_STRENGTH": 20
-   }
+   },
+   "name": "apex controller"
 }

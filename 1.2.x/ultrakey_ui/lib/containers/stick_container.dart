@@ -1,16 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:ultrakey_ui/containers/advanced_container.dart';
-import 'package:ultrakey_ui/models/assets.dart';
-import 'package:ultrakey_ui/models/buttons.dart';
-import 'package:ultrakey_ui/models/config.dart';
-import 'package:ultrakey_ui/theme.dart';
-import 'package:ultrakey_ui/widgets/contained_switch.dart';
-import 'package:ultrakey_ui/widgets/input_box.dart';
-import 'package:ultrakey_ui/widgets/minimal_dropdown.dart';
-import 'package:ultrakey_ui/widgets/slider_container.dart';
-import 'package:ultrakey_ui/widgets/styled_container.dart';
+import 'package:launcher/containers/advanced_container.dart';
+import 'package:launcher/models/assets.dart';
+import 'package:launcher/models/buttons.dart';
+import 'package:launcher/models/config.dart';
+import 'package:launcher/theme.dart';
+import 'package:launcher/widgets/contained_switch.dart';
+import 'package:launcher/widgets/input_box.dart';
+import 'package:launcher/widgets/minimal_dropdown.dart';
+import 'package:launcher/widgets/slider_container.dart';
+import 'package:launcher/widgets/styled_container.dart';
 
 class StickOptions extends StatefulWidget {
   const StickOptions({super.key});
@@ -20,12 +20,15 @@ class StickOptions extends StatefulWidget {
 }
 
 class _StickOptionsState extends State<StickOptions> {
+  Config cfg = ConfigLoader.getSelected() ?? Config();
   late StreamSubscription _configListener;
 
   @override
   void initState() {
-    _configListener = Config.listen(
-      (_) => setState(() {}),
+    _configListener = ConfigController.listen(
+      (_) => setState(() {
+        cfg = ConfigLoader.getSelected() ?? Config();
+      }),
     );
 
     super.initState();
@@ -37,11 +40,22 @@ class _StickOptionsState extends State<StickOptions> {
     super.dispose();
   }
 
-  void _forwardEvent(String id, dynamic v) {
-    Config.updateStream.push(id: id, value: v);
-  }
+  Widget generateStickRow(List<Widget> icons, String tag, VK? binding) {
+    String getDisplayText(
+      int index,
+      Map<VK, StickDir> directionMap,
+    ) {
+      final direction = Config.analogDirections[index];
+      return VK.displayName(
+        directionMap.entries
+            .firstWhere(
+              (entry) => entry.value == direction,
+              orElse: () => MapEntry(VK.keyNone, direction),
+            )
+            .key,
+      );
+    }
 
-  Widget generateStickRow(List<Widget> icons, String tag, int? binding) {
     return Row(
       children: [
         for (int i = 0; i < icons.length; ++i) ...[
@@ -51,20 +65,50 @@ class _StickOptionsState extends State<StickOptions> {
           ),
           Expanded(
             child: InputCaptureBox(
-              onChanged: (v) => _forwardEvent("$tag$i", v),
-              displayText: VirtualKey.displayName(
-                Config.getGrid(tag, i),
-              ),
-              conflict: !(Config.countValueInstances(tag, i) <= 1),
-              enabled: Config.stickEnabled(binding),
+              onChanged: (v) => ConfigController.updateStream.push(() {
+                if (tag == "ls") {
+                  cfg.leftAnalogBindings.removeWhere(
+                    (k, v) => v == Config.analogDirections[i],
+                  );
+                  cfg.leftAnalogBindings[v] = Config.analogDirections[i];
+                }
+
+                if (tag == "rs") {
+                  cfg.rightAnalogBindings.removeWhere(
+                    (k, v) => v == Config.analogDirections[i],
+                  );
+                  cfg.rightAnalogBindings[v] = Config.analogDirections[i];
+                }
+              }),
+              displayText: (tag == "ls")
+                  ? getDisplayText(i, cfg.leftAnalogBindings)
+                  : (tag == "rs")
+                      ? getDisplayText(i, cfg.rightAnalogBindings)
+                      : null,
+              enabled: binding == VK.keyKeyboard,
             ),
           ),
         ],
         SizedBox(width: WidgetRatios.horizontalPadding),
         MinimalDropdown(
-          onChanged: (v) => _forwardEvent("${tag}Type", v),
-          items: Config.stickRemapping.keys.toList(),
-          initialValue: Config.toStickLabel(binding ?? 0),
+          displayText: (v) => v.toString(),
+          onChanged: (v) {
+            ConfigController.updateStream.push(() {
+              if (tag == "ls") {
+                cfg.lsBinding =
+                    Config.stickBindings[v ?? ""] ?? VK.keyNone;
+              }
+
+              if (tag == "rs") {
+                cfg.rsBinding =
+                    Config.stickBindings[v ?? ""] ?? VK.keyNone;
+              }
+            });
+          },
+          items: Config.stickBindings.keys.toList(),
+          initialValue: Config.stickBindings.reverse(
+            binding ?? VK.keyNone,
+          ),
         ),
       ],
     );
@@ -86,7 +130,7 @@ class _StickOptionsState extends State<StickOptions> {
                 leftJoystickLeftImage,
                 leftJoystickDownImage,
                 leftJoystickRightImage,
-              ], "ls", Config.lsBinding),
+              ], "ls", cfg.lsBinding),
             ),
             Padding(
               padding: WidgetRatios.widgetPadding(scale: 0.5),
@@ -95,31 +139,32 @@ class _StickOptionsState extends State<StickOptions> {
                 rightJoystickLeftImage,
                 rightJoystickDownImage,
                 rightJoystickRightImage,
-              ], "rs", Config.rsBinding),
+              ], "rs", cfg.rsBinding),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               mainAxisSize: MainAxisSize.max,
               children: [
-                // ContainedSwitch(
-                //   value: Config.threshold,
-                //   label: Text("Threshold"),
-                //   update: (v) => _forwardEvent("threshold", v),
-                // ),
                 ContainedSwitch(
-                  value: Config.passthrough,
+                  value: cfg.passthrough,
                   label: Text("Passthrough"),
-                  update: (v) => _forwardEvent("passthrough", v),
+                  update: (v) => ConfigController.updateStream.push(() {
+                    cfg.passthrough = v;
+                  }),
                 ),
                 ContainedSwitch(
-                  value: Config.stabilizer,
+                  value: cfg.stabilizer,
                   label: Text("Stabilizer"),
-                  update: (v) => _forwardEvent("stabilizer", v),
+                  update: (v) => ConfigController.updateStream.push(() {
+                    cfg.stabilizer = v;
+                  }),
                 ),
                 ContainedSwitch(
-                  value: Config.keepalive,
+                  value: cfg.keepalive,
                   label: Text("Keepalive"),
-                  update: (v) => _forwardEvent("keepalive", v),
+                  update: (v) => ConfigController.updateStream.push(() {
+                    cfg.keepalive = v;
+                  }),
                 ),
               ],
             ),
@@ -128,12 +173,12 @@ class _StickOptionsState extends State<StickOptions> {
                 Expanded(
                   child: Padding(
                     padding: WidgetRatios.widgetPadding(),
-                    child: SliderContainer(
-                      value: Config.sensitivity.clamp(1, 100),
+                    child: SliderContainer.fromConfigVar(
+                      cfg.sensitivity,
                       label: "Sensitivity",
-                      minValue: 1,
-                      maxValue: 100,
-                      update: (v) => _forwardEvent("sensitivity", v.floor()),
+                      update: (v) => ConfigController.updateStream.push(() {
+                        cfg.sensitivity.value = v;
+                      }),
                     ),
                   ),
                 ),
@@ -150,12 +195,12 @@ class _StickOptionsState extends State<StickOptions> {
             ),
             Padding(
               padding: WidgetRatios.widgetPadding(),
-              child: SliderContainer(
-                value: Config.smoothing.clamp(1, 100),
+              child: SliderContainer.fromConfigVar(
+                cfg.smoothing,
                 label: "Smoothing",
-                minValue: 1,
-                maxValue: 100,
-                update: (v) => _forwardEvent("smoothing", v.floor()),
+                update: (v) => ConfigController.updateStream.push(() {
+                  cfg.smoothing.value = v;
+                }),
               ),
             ),
           ],

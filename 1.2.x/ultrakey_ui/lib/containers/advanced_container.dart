@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:ultrakey_ui/models/config.dart';
-import 'package:ultrakey_ui/theme.dart';
-import 'package:ultrakey_ui/widgets/slider_container.dart';
+import 'package:launcher/models/config.dart';
+import 'package:launcher/theme.dart';
+import 'package:launcher/widgets/slider_container.dart';
 
 class AdvancedContainer extends StatefulWidget {
   const AdvancedContainer({super.key});
@@ -14,11 +14,14 @@ class AdvancedContainer extends StatefulWidget {
 
 class _AdvancedContainerState extends State<AdvancedContainer> {
   late StreamSubscription _configListener;
+  Config cfg = ConfigLoader.getSelected() ?? Config();
 
   @override
   void initState() {
-    _configListener = Config.listen(
-      (_) => setState(() {}),
+    _configListener = ConfigController.listen(
+      (_) => setState(() {
+        cfg = ConfigLoader.getSelected() ?? Config();
+      }),
     );
 
     super.initState();
@@ -28,10 +31,6 @@ class _AdvancedContainerState extends State<AdvancedContainer> {
   void dispose() {
     _configListener.cancel();
     super.dispose();
-  }
-
-  void _forwardEvent(String id, dynamic v) {
-    Config.updateStream.push(id: id, value: v);
   }
 
   @override
@@ -44,34 +43,42 @@ class _AdvancedContainerState extends State<AdvancedContainer> {
         children: [
           Padding(
             padding: WidgetRatios.widgetPadding(),
-            child: SliderContainer(
-              value: Config.stabilizerStrength,
+            child: SliderContainer.fromConfigVar(
+              cfg.stabilizeStrength,
               label: "Stabilizer Strength",
-              update: (v) => _forwardEvent("stabilizerStrength", v.floor()),
+              update: (v) => ConfigController.updateStream.push(() {
+                cfg.stabilizeStrength.value = v;
+              }),
             ),
           ),
           Padding(
             padding: WidgetRatios.widgetPadding(),
-            child: SliderContainer(
-              value: Config.stabilizerSpeed.toDouble(),
+            child: SliderContainer.fromConfigVar(
+              cfg.stabilizeSpeed,
               label: "Stabilizer Speed",
-              update: (v) => _forwardEvent("stabilizerSpeed", v.floor()),
+              update: (v) => ConfigController.updateStream.push(() {
+                cfg.stabilizeSpeed.value = v;
+              }),
             ),
           ),
           Padding(
             padding: WidgetRatios.widgetPadding(),
-            child: SliderContainer(
-              value: Config.keepaliveStrength,
+            child: SliderContainer.fromConfigVar(
+              cfg.keepaliveStrength,
               label: "Keepalive Strength",
-              update: (v) => _forwardEvent("keepaliveStrength", v.floor()),
+              update: (v) => ConfigController.updateStream.push(() {
+                cfg.keepaliveStrength.value = v;
+              }),
             ),
           ),
           Padding(
             padding: WidgetRatios.widgetPadding(),
-            child: SliderContainer(
-              value: Config.keepaliveSpeed.toDouble(),
+            child: SliderContainer.fromConfigVar(
+              cfg.keepaliveSpeed,
               label: "Keepalive Speed",
-              update: (v) => _forwardEvent("keepaliveSpeed", v.floor()),
+              update: (v) => ConfigController.updateStream.push(() {
+                cfg.keepaliveSpeed.value = v;
+              }),
             ),
           ),
         ],

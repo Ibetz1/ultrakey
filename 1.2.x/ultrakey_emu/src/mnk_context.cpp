@@ -1,9 +1,5 @@
 #include "main.hpp"
 
-bool default_threshold_calc(int x, int y) {
-    return false;
-}
-
 bool run_mnk(void* data) {
     MnkContext* context = (MnkContext*) data;
 
@@ -109,29 +105,25 @@ int MnkContext::handle_mouse(const InterceptionMouseStroke &mouseStroke) {
         ret = key_block[VKEY_MOUSE_MW];
     }
 
-    // if (mouseStroke.state & INTERCEPTION_MOUSE_BUTTON_4_DOWN) {
-    //     // key_record[VKEY_MOUSE_MB] = true;
-    //     // ret = key_block[VKEY_MOUSE_MB];
-    //     ret = false;
-    // }
+    if (mouseStroke.state & INTERCEPTION_MOUSE_BUTTON_4_DOWN) {
+        key_record[VKEY_MOUSE_4] = true;
+        ret = key_block[VKEY_MOUSE_4];
+    }
 
-    // if (mouseStroke.state & INTERCEPTION_MOUSE_BUTTON_4_UP) {
-    //     // key_record[VKEY_MOUSE_MB] = true;
-    //     // ret = key_block[VKEY_MOUSE_MB];
-    //     ret = false;
-    // }
+    if (mouseStroke.state & INTERCEPTION_MOUSE_BUTTON_4_UP) {
+        key_record[VKEY_MOUSE_4] = false;
+        ret = 0;
+    }
 
-    // if (mouseStroke.state & INTERCEPTION_MOUSE_BUTTON_5_DOWN) {
-    //     // key_record[VKEY_MOUSE_MB] = true;
-    //     // ret = key_block[VKEY_MOUSE_MB];
-    //     ret = false;
-    // }
+    if (mouseStroke.state & INTERCEPTION_MOUSE_BUTTON_5_DOWN) {
+        key_record[VKEY_MOUSE_5] = true;
+        ret = key_block[VKEY_MOUSE_5];
+    }
 
-    // if (mouseStroke.state & INTERCEPTION_MOUSE_BUTTON_5_UP) {
-    //     // key_record[VKEY_MOUSE_MB] = true;
-    //     // ret = key_block[VKEY_MOUSE_MB];
-    //     ret = false;
-    // }
+    if (mouseStroke.state & INTERCEPTION_MOUSE_BUTTON_5_UP) {
+        key_record[VKEY_MOUSE_5] = false;
+        ret = 0;
+    }
 
     return ret;
 }

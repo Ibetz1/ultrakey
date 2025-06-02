@@ -1,22 +1,22 @@
 import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:flutter/material.dart';
-import 'package:ultrakey_ui/containers/login_container.dart';
-import 'package:ultrakey_ui/containers/main_container.dart';
-import 'package:ultrakey_ui/models/config.dart';
-import 'package:ultrakey_ui/models/utils.dart';
-import 'package:ultrakey_ui/widgets/auth_state.dart';
-import 'package:ultrakey_ui/theme.dart';
-import 'package:ultrakey_ui/widgets/gradient_scaffold.dart';
-import 'package:ultrakey_ui/widgets/installer.dart';
-import 'package:ultrakey_ui/widgets/windows_buttons.dart';
+import 'package:launcher/containers/login_container.dart';
+import 'package:launcher/containers/main_container.dart';
+import 'package:launcher/models/utils.dart';
+import 'package:launcher/theme.dart';
+import 'package:launcher/widgets/auth_state.dart';
+import 'package:launcher/widgets/gradient_scaffold.dart';
+import 'package:launcher/widgets/installer.dart';
+import 'package:launcher/widgets/windows_buttons.dart';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  ScriptLoader.watchScriptFolder((file, event) {
-    Config.updateStream.push(id: "scriptChanged", value: {
-      file: event,
-    });
-  });
+  // ScriptLoader.watchScriptFolder((file, event) {
+  //   Config.updateStream.push(id: "scriptChanged", value: {
+  //     file: event,
+  //   });
+  // });
 
   runApp(MainApp());
 
@@ -56,7 +56,7 @@ class _MainAppState extends State<MainApp> {
               child: UltrakeyInstaller(
                 child: AuthStateContainer(
                   login: UltrakeyLogin(),
-                  valid: Expanded(child: UltrakeyMain()),
+                  valid: UltrakeyMain(),
                 ),
               ),
             ),

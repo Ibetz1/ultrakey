@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:ultrakey_ui/models/auth.dart';
-import 'package:ultrakey_ui/theme.dart';
-import 'package:ultrakey_ui/widgets/styled_container.dart';
+import 'package:launcher/models/auth.dart';
+import 'package:launcher/theme.dart';
+import 'package:launcher/widgets/styled_container.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class UltrakeyLogin extends StatefulWidget {
@@ -22,7 +22,12 @@ class _UltrakeyLoginState extends State<UltrakeyLogin> {
 
     String? token = AuthStorage.loadToken();
     if (token != null) {
-      AuthServer.updateStream.push(id: "gotToken", value: token);
+      AuthServer.updateStream.push(() {
+        AuthServer.state = AuthState.awaitingToken;
+        AuthServer.validateToken(token).then(
+          (v) => AuthServer.notify(),
+        );
+      });
     }
 
     authUpdates = AuthServer.listen((v) {
@@ -40,14 +45,16 @@ class _UltrakeyLoginState extends State<UltrakeyLogin> {
 
   void _login() {
     AuthServer.openDiscordOAuth();
-    AuthServer.updateStream.push(
-      id: "login",
-      value: null,
-    );
+    AuthServer.updateStream.push(() {
+      AuthServer.state = AuthState.awaitingToken;
+    });
   }
 
   void _logout() {
-    AuthServer.updateStream.push(id: "logout", value: null);
+    AuthServer.updateStream.push(() {
+      AuthStorage.delToken();
+      AuthServer.state = AuthState.awaitingLogin;
+    });
   }
 
   void _purchase() {
@@ -60,10 +67,14 @@ class _UltrakeyLoginState extends State<UltrakeyLogin> {
   }
 
   void _refresh() {
-    AuthServer.updateStream.push(
-      id: "gotToken",
-      value: AuthServer.currentToken,
-    );
+    AuthServer.updateStream.push(() {
+      AuthServer.state = AuthState.awaitingToken;
+      AuthServer.validateToken(AuthServer.currentToken).then(
+        (v) => setState(() {
+          AuthServer.notify();
+        }),
+      );
+    });
   }
 
   Widget refreshButton() => SizedBox(

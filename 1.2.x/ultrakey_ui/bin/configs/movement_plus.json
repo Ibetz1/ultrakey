@@ -3,7 +3,6 @@
    "passthrough": false,
    "keepalive_speed": 50,
    "stabilizer": false,
-   "threshold": false,
    "keepalive_strength": 0.3,
    "left_analog_bindings": {},
    "right_analog_bindings": {},
@@ -16,10 +15,10 @@
    "stick_sensitivity": 0.24,
    "stick_smoothing": 0.95,
    "scripts": [
-      "C:\\Users\\Ianbe.IANSPC\\Desktop\\ultrakey_flutter\\ultrakey_ui\\scripts\\strafe.lua",
-      "C:\\Users\\Ianbe.IANSPC\\Desktop\\ultrakey_flutter\\ultrakey_ui\\scripts\\superglide.lua",
-      "C:\\Users\\Ianbe.IANSPC\\Desktop\\ultrakey_flutter\\ultrakey_ui\\scripts\\jitter.lua",
-      "C:\\Users\\Ianbe.IANSPC\\Desktop\\ultrakey_flutter\\ultrakey_ui\\scripts\\auto_loot.lua"
+      "E:\\Programming\\ultrakey\\1.2.x\\ultrakey_ui\\scripts\\strafe.lua",
+      "E:\\Programming\\ultrakey\\1.2.x\\ultrakey_ui\\scripts\\superglide.lua",
+      "E:\\Programming\\ultrakey\\1.2.x\\ultrakey_ui\\scripts\\jitter.lua",
+      "E:\\Programming\\ultrakey\\1.2.x\\ultrakey_ui\\scripts\\auto_loot.lua"
    ],
    "button_bindings": {},
    "toggle_bindings": {},

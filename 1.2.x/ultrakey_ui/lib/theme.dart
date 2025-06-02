@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:ultrakey_ui/models/utils.dart';
+import 'package:launcher/models/utils.dart';
 
 // styling constants
 

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:ultrakey_ui/models/utils.dart';
+import 'package:launcher/models/config.dart';
+import 'package:launcher/models/utils.dart';
 
 class SliderContainer extends StatefulWidget {
   const SliderContainer({
@@ -10,6 +11,19 @@ class SliderContainer extends StatefulWidget {
     this.maxValue = sliderRange,
     super.key,
   });
+
+  static SliderContainer fromConfigVar(
+    ConfigVar variable, {
+    String? label,
+    void Function(double)? update,
+  }) =>
+      SliderContainer(
+        value: variable.value,
+        minValue: variable.minTarget,
+        maxValue: variable.maxTarget,
+        label: label,
+        update: update,
+      );
 
   final double value;
   final String? label;
@@ -49,7 +63,7 @@ class _SliderContainerState extends State<SliderContainer> {
             ),
           ),
         ),
-        Text("${widget.value.floor()}")
+        Text("${((widget.value - widget.minValue) * 100 / (widget.maxValue - widget.minValue)).ceil()}%")
       ],
     );
   }

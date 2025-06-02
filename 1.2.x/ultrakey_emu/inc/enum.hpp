@@ -110,8 +110,11 @@ enum VirtualKey {
     VKEY_MOUSE_RB = 0x060,
     VKEY_MOUSE_MB = 0x061,
     VKEY_MOUSE_MW = 0x062,
+    VKEY_MOUSE_4 = 0x063,
+    VKEY_MOUSE_5 = 0x064,
+    VKEY_KEYBOARD = 0x065,
 
-    VKEY_KEYBOARD = 0x063,
+
     VKEY_MAX,
 };
 

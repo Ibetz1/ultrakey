@@ -2,11 +2,12 @@ import 'dart:ffi';
 import 'dart:io';
 
 import 'package:ffi/ffi.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as p;
-import 'package:ultrakey_ui/models/libraries.dart';
-import 'package:ultrakey_ui/theme.dart';
-import 'package:ultrakey_ui/widgets/styled_container.dart';
+import 'package:launcher/models/libraries.dart';
+import 'package:launcher/theme.dart';
+import 'package:launcher/widgets/styled_container.dart';
 
 class UltrakeyInstaller extends StatefulWidget {
   const UltrakeyInstaller({
@@ -29,8 +30,10 @@ class _UltrakeyInstallerState extends State<UltrakeyInstaller> {
 
   @override
   void initState() {
-    requestAdmin();
-    driverBitfield = fetchReqDrivers();
+    if (!kDebugMode) {
+      requestAdmin();
+      driverBitfield = fetchReqDrivers();
+    }
     super.initState();
   }
 
@@ -115,6 +118,10 @@ class _UltrakeyInstallerState extends State<UltrakeyInstaller> {
 
   @override
   Widget build(BuildContext context) {
+    if (kDebugMode) {
+      return widget.child;
+    }
+
     if (hasInterception && hasVigembus) {
       return widget.child;
     }

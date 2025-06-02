@@ -1,7 +1,11 @@
 import 'dart:io';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:launcher/models/binding_grid.dart';
+import 'package:launcher/models/buttons.dart';
 import 'package:path/path.dart' as p;
+
+enum SecurityType { secure, public }
 
 const double huge = 999999999999999;
 const int numCols = 3;
@@ -42,7 +46,7 @@ double unmapSlider(
   double inMax, {
   double range = sliderRange,
 }) =>
-    (val - inMin) * range / (inMax - inMin);
+    ((val - inMin) * range / (inMax - inMin)).clamp(inMin, inMax);
 
 void printf(Object? obj) {
   if (kDebugMode) {
@@ -64,45 +68,6 @@ void monitorFolder(
   dir.watch(recursive: false).listen((event) {
     onUpdate?.call(event.path, event.type);
   });
-}
-
-Future<String> readTextFromFile(String path) async {
-  final file = File(path);
-  if (await file.exists()) {
-    return await file.readAsString();
-  } else {
-    throw Exception('File does not exist: $path');
-  }
-}
-
-String? getBindName(String input) {
-  input = input.trim();
-  final regex = RegExp(r'^--\[bind\]([A-Z0-9_]+)$');
-  final match = regex.firstMatch(input);
-  return match?.group(1);
-}
-
-Map<String, dynamic>? parseMinMaxBinding(String input) {
-  input = input.trim();
-
-  final regex = RegExp(r'^--\[(\d+),(\d+)\]([A-Z0-9_]+)=(\d+)$');
-  final match = regex.firstMatch(input);
-
-  if (match != null) {
-    final min = int.parse(match.group(1)!);
-    final max = int.parse(match.group(2)!);
-    final name = match.group(3)!;
-    final value = int.parse(match.group(4)!);
-
-    return {
-      'min': min,
-      'max': max,
-      'name': name,
-      'value': value,
-    };
-  }
-
-  return null;
 }
 
 K? getKeyByValue<K, V>(Map<K, V> map, V value) {
@@ -154,3 +119,19 @@ void openFileSmart(String filePath) async {
     await Process.run('start', [filePath], runInShell: true);
   }
 }
+
+List<List<String>> generateKeyGrid<K>(
+  BindingGrid<VK, K> grid,
+  Iterable<K> keys,
+) =>
+    keys
+        .map(
+          (k) => grid
+              .row(k)
+              .map(
+                (e) => VK.displayName(e),
+              )
+              .toList(),
+        )
+        .where((row) => row.isNotEmpty)
+        .toList();

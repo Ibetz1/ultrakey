@@ -4,7 +4,7 @@ param (
 
 $dir = Split-Path -Path $MyInvocation.MyCommand.Path -Parent
 
-$buildName = "ultrakey_ui.exe"
+$buildName = "launcher.exe"
 $buildPath = Join-Path $dir "build/windows/x64/runner/Release"
 $assetsPath = Join-Path $dir "assets/"
 $configPath = Join-Path $dir "configs/"

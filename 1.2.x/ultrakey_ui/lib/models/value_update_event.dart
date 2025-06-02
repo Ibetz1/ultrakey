@@ -2,44 +2,24 @@ import 'dart:async';
 
 class ValueUpdateEvent {
   ValueUpdateEvent({
-    required this.id,
-    required this.value,
+    required this.callback,
   });
 
-  final String id;
-  final dynamic value;
+  final void Function() callback;
 
-  // static StreamController updateStream =
-  //     StreamController<ValueUpdateEvent>.broadcast();
-
-  // static void push({
-  //   required String id,
-  //   required dynamic value,
-  // }) {
-  //   updateStream.add(
-  //     ValueUpdateEvent(id: id, value: value),
-  //   );
-  // }
-
-  // static StreamSubscription<ValueUpdateEvent> listen({
-  //   required void Function(ValueUpdateEvent) onData,
-  // }) {
-  //   return updateStream.stream.listen((data) => onData(data))
-  //       as StreamSubscription<ValueUpdateEvent>;
-  // }
+  void call() {
+    callback.call();
+  }
 }
 
 class ValueUpdateStream {
   StreamController updateStream =
       StreamController<ValueUpdateEvent>.broadcast();
 
-  void push({
-    required String id,
-    required dynamic value,
-  }) {
-    updateStream.add(
-      ValueUpdateEvent(id: id, value: value),
-    );
+  void push(
+    void Function() callback,
+  ) {
+    updateStream.add(ValueUpdateEvent(callback: callback));
   }
 
   StreamSubscription<ValueUpdateEvent> listen({
