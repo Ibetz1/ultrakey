@@ -58,34 +58,8 @@ void* output_interrupt(Interrupt* interrupt) {
     return nullptr;
 }
 
-GamePad::GamePad(MnkContext* mnk_context) : mnk_context(mnk_context) {
-    client = vigem_alloc();
-    if (client == nullptr) {
-        THROW("Failed to allocate ViGEm client!\n");
-        return;
-    }
-
-    if (vigem_connect(client) != VIGEM_ERROR_NONE) {
-        vigem_free(client);
-        THROW("Failed to connect to ViGEm!\n");
-        return;
-    }
-
-    pad = vigem_target_x360_alloc();
-    if (pad == nullptr) {
-        vigem_disconnect(client);
-        vigem_free(client);
-        THROW("Failed to allocate Xbox 360 controller!");
-        return;
-    }
-
-    if (vigem_target_add(client, pad) != VIGEM_ERROR_NONE) {
-        vigem_target_free(pad);
-        vigem_disconnect(client);
-        vigem_free(client);
-        THROW("Failed to add virtual controller!\n");
-        return;
-    }
+GamePad::GamePad(MnkContext* mnk_context) : mnk_context(mnk_context) { 
+    init_recurse(); 
 }
 
 GamePad::~GamePad() {
@@ -93,6 +67,47 @@ GamePad::~GamePad() {
     vigem_target_free(pad);
     vigem_disconnect(client);
     vigem_free(client); 
+}
+
+void GamePad::init_recurse(int attempts) {
+    if (attempts < 3) {
+        client = vigem_alloc();
+        if (client == nullptr) {
+            LOGE("Failed to allocate ViGEm client!\n");
+            init_recurse(attempts + 1);
+            return;
+        }
+
+        if (vigem_connect(client) != VIGEM_ERROR_NONE) {
+            vigem_free(client);
+            LOGE("Failed to connect to ViGEm!\n");
+            init_recurse(attempts + 1);
+            return;
+        }
+
+        pad = vigem_target_x360_alloc();
+        if (pad == nullptr) {
+            vigem_disconnect(client);
+            vigem_free(client);
+            LOGE("Failed to allocate Xbox 360 controller!");
+            init_recurse(attempts + 1);
+            return;
+        }
+
+        VIGEM_ERROR ret = vigem_target_add(client, pad);
+        if (ret != VIGEM_ERROR_NONE) {
+            vigem_target_free(pad);
+            vigem_disconnect(client);
+            vigem_free(client);
+            LOGE("Failed to add virtual controller! %08x\n", ret);
+            init_recurse(attempts + 1);
+            return;
+        }
+    } else {
+        THROW_CRIT("Failed to init vigem, critical failure.");
+    }
+
+    LOGI("vigem started");
 }
 
 Vec<float> GamePad::run_oscillator(int rev_per_second, float magnitude, float timer) {

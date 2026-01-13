@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:launcher/models/bimap.dart';
 import 'package:launcher/models/binding_grid.dart';
 import 'package:launcher/models/buttons.dart';
+import 'package:launcher/models/conf_version.dart';
 import 'package:launcher/models/script.dart';
 import 'package:launcher/models/utils.dart';
 import 'package:path/path.dart' as p;
@@ -67,6 +68,7 @@ class Config {
   String name;
   String id;
   SecurityType type = SecurityType.public;
+  ConfigVersion version = ConfigVersion.kbmLatest;
 
   Config({this.name = "UNKNOWN"}) : id = uuid.v4();
   static Config fromJson(String json) => Config()..deserialize(json);
@@ -84,8 +86,8 @@ class Config {
     StickDir(1, 0),
   ];
 
-  VK? lsBinding = VK.keyNone;
-  VK? rsBinding = VK.keyNone;
+  VK lsBinding = VK.keyNone;
+  VK rsBinding = VK.keyNone;
 
   Map<VK, StickDir> leftAnalogBindings = {};
   Map<VK, StickDir> rightAnalogBindings = {};
@@ -109,7 +111,7 @@ class Config {
   );
 
   List<Script> scripts = [];
-  final Map<String, VK> flaggedBindings = {};
+  final Map<String, VK> taggedBindings = {};
   final Map<String, ConfigVar> sliderBindings = {};
   final Map<String, bool> booleanBindings = {};
 
@@ -148,7 +150,53 @@ class Config {
     }
   }
 
-  void serialize() {}
+  String serialize() {
+    String encoding = JsonEncoder.withIndent('   ').convert({
+      "name": name,
+      "id": id,
+      "version": ConfigVersion.toLabel(version),
+      "ls_binding": lsBinding.value,
+      "rs_binding": rsBinding.value,
+      "lt_binding": triggerBindings.row(GamepadTrigger.lt).first.value,
+      "rt_binding": triggerBindings.row(GamepadTrigger.rt).first.value,
+      "keepalive": keepalive,
+      "passthrough": passthrough,
+      "stabilizer": stabilizer,
+      "keepalive_speed": keepaliveSpeed.directValue,
+      "keepalive_strength": keepaliveStrength.directValue,
+      "stabilizer_speed": stabilizeSpeed.directValue,
+      "stabilizer_strength": stabilizeStrength.directValue,
+      "stick_sensitivity": sensitivity.directValue,
+      "stick_smoothing": smoothing.directValue,
+      "scripts": scripts.map((item) => item.name).toList(),
+      "left_analog_bindings": leftAnalogBindings.map(
+        (k, v) => MapEntry(k.value.toString(), v.toList()),
+      ),
+      "right_analog_bindings": rightAnalogBindings.map(
+        (k, v) => MapEntry(k.value.toString(), v.toList()),
+      ),
+      "button_bindings": Map.fromEntries(
+        toggleBindings.flatten().entries.where((e) => e.key != VK.keyNone).map(
+              (e) => MapEntry(e.key.value.toString(), e.value.value),
+            ),
+      ),
+      "tagged_bindings": Map.fromEntries(
+        taggedBindings.entries.where((e) => e.value != VK.keyNone).map(
+              (e) => MapEntry(e.value.value.toString(), e.key),
+            ),
+      ),
+      "value_bindings": sliderBindings.map(
+        (k, v) => MapEntry(k, v.value.floor()),
+      ),
+      "toggle_bindings": Map.fromEntries(
+        toggleBindings.flatten().entries.where((e) => e.key != VK.keyNone).map(
+              (e) => MapEntry(e.key.value.toString(), e.value.value),
+            ),
+      ),
+    });
+
+    return encoding;
+  }
 
   // json to config type
   void deserialize(String json) {
@@ -157,6 +205,7 @@ class Config {
     // config settings
     id = data["id"] ?? id;
     name = data["name"] ?? name;
+    version = data["version"] ?? version;
 
     // sticks
     lsBinding = VK.from(data["ls_binding"] ?? lsBinding ?? VK.keyNone);
@@ -287,9 +336,17 @@ class ConfigLoader {
   }
 
   // runs config by name
-  static void run(String id) {
+  static void run(String? id) {
     // map config from memory into the emulator
-    // TODO
+    String? serial = getConfig(id)?.serialize();
+  
+    if (serial != null) {
+      print(serial);
+    }
+  }
+
+  static void runSelected() {
+    run(_selected);
   }
 
   // saves config by name to file

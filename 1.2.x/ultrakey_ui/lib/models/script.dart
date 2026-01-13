@@ -83,7 +83,7 @@ class Script {
     for (String id in flaggedBindings.keys) {
       int count = countBindingInstance(cfg, id, (scr) => scr.flaggedBindings);
       if (count == 0) {
-        cfg.flaggedBindings[id] = flaggedBindings[id] ?? VK.keyNone;
+        cfg.taggedBindings[id] = flaggedBindings[id] ?? VK.keyNone;
       }
     }
 
@@ -108,7 +108,7 @@ class Script {
     for (String id in flaggedBindings.keys) {
       int count = countBindingInstance(cfg, id, (scr) => scr.flaggedBindings);
       if (count == 0) {
-        cfg.flaggedBindings.remove(id);
+        cfg.taggedBindings.remove(id);
       }
     }
 

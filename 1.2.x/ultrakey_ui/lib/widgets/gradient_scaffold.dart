@@ -14,12 +14,14 @@ class GradientScaffold extends StatelessWidget {
       body: Stack(
         children: [
           Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomLeft,
+            decoration: BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment(1, -0.3),
+                radius: 1.2,
                 colors: [
-                  Color.fromARGB(255, 110, 63, 54),
-                  Color.fromARGB(255, 57, 51, 103),
+                  Color.fromARGB(255, 78, 0, 142),
+                  Color.fromARGB(255, 0, 49, 102),
+                  const Color.fromARGB(255, 110, 0, 135),
                 ],
               ),
             ),

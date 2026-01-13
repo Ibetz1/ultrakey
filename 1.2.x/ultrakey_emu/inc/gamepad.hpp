@@ -40,6 +40,9 @@ struct GamePad {
 
     Vec<float> key_to_stick(const std::unordered_map<VirtualKey, Vec<float>>& stick_bindings);
 
+    // fuck ass fix for vigem initialization errors
+    void init_recurse(int attempts = 0);
+
     void handle_buttons();
 
     void handle_toggles();

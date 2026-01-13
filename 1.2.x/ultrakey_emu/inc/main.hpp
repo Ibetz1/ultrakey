@@ -53,6 +53,8 @@ void throw_message_popup(const char* fmt, ...);
 
 #endif
 
+#define THROW_CRIT(fmt, ...) do { LOGE(__FILE__ ":%i " fmt, __LINE__, ##__VA_ARGS__); exit(1); } while (0)
+
 #define BURN_CYCLE __asm__ __volatile__("pause" ::: "memory")
 #define CLK_TIME_INTERVAL_LL 1'000'000'000ULL
 #define CLK_TIME_INTERVAL_F 1'000'000'000.f

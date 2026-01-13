@@ -1,6 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
 
-
 a = Analysis(
     ['E:\\Programming\\ultrakey\\ultrakey_ui\\.\\src\\main.py'],
     pathex=[],

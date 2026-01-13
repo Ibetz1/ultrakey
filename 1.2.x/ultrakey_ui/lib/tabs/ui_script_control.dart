@@ -223,7 +223,7 @@ class _UiScriptControlsState extends State<UiScriptControls> {
   Widget _bindingList() {
     Map<dynamic, dynamic> configBindings = {};
 
-    configBindings.addAll(cfg.flaggedBindings);
+    configBindings.addAll(cfg.taggedBindings);
     configBindings.addAll(cfg.booleanBindings);
     configBindings.addAll(cfg.sliderBindings);
 
@@ -266,11 +266,11 @@ class _UiScriptControlsState extends State<UiScriptControls> {
                               flex: 4,
                               child: InputCaptureBox(
                                 displayText: VK.displayName(
-                                  cfg.flaggedBindings[entry.key],
+                                  cfg.taggedBindings[entry.key],
                                 ),
                                 onChanged: (v) {
                                   ConfigController.updateStream.push(() {
-                                    cfg.flaggedBindings[entry.key] = v;
+                                    cfg.taggedBindings[entry.key] = v;
                                   });
                                 },
                               ),

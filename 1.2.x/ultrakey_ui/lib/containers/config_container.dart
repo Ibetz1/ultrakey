@@ -37,6 +37,7 @@ class _StateControlsState extends State<StateControls> {
     // await ConfigLoader.runSelected();
 
     // _forwardEvent("emuState", UltrakeyRunner.running);
+    ConfigLoader.runSelected();
   }
 
   Future<void> _stopEmu() async {

@@ -73,6 +73,7 @@ extern "C" {
 		// The target device is not initialized.
 		// 
 		VIGEM_ERROR_TARGET_UNINITIALIZED = 0xE0000006,
+		
 		//
 		// The target device is not plugged in.
 		// 

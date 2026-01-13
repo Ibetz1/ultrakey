@@ -20,21 +20,19 @@ static LuaContext* lua_context = nullptr;
 
 void throw_message_popup(const char* fmt, ...) {
     char buffer[1024];
-
+    
     va_list args;
     va_start(args, fmt);
     vsnprintf(buffer, sizeof(buffer), fmt, args); // Safe formatting
     va_end(args);
-
+    
+    run = false;
     MessageBoxA(
         nullptr,
         buffer,
         "Error",
         MB_ICONERROR | MB_OK
     );
-
-    // exit(1);
-    run = false;
 }
 
 void* emu_main(void* config) {
