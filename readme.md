@@ -1,30 +1,67 @@
 # UltraKey
-### Note from creator
-I have suspended the remove host for UltraKey as of 1/13/2026.
-I do not remember how coupled the UI and auth is to the web service but from memory, you can port a couple variables in a header somewhere in the UI to change services.
 
-### 1.1.x
-This is the original proof of concept for UltraKey which uses
-VigemBus and Oblitum interception to convert mouse and keyboard to controller.
+## Note from the Creator
 
-You need a gcc compiler to build the project along with py-to-exe.
+As of **1/13/2026**, the remote host for UltraKey has been suspended.
 
-Currently, powershell is being used for the build system but it can be easily ported to shell or any other script type.
+From memory, the UI and authentication layers are somewhat coupled to the web service, but this should be easy to decouple. You can likely point the UI to a different service by modifying a small set of variables in a shared header or config file.
 
-Insert your discord API keys into `1.1.x/ultrakey_ui/login.key` to enable authentication for the front end. The software will not work without it.
+---
 
-The source for the backend is under `1.1.x/ultrakey_emu` and the source for the frontend is under `1.1.x/ultrakey_ui`. I have a basic binary obfuscator/wrapper to hide the program which packages and encrypts the project binary in the build folder. ultrakey_run unpacks this binary and executes it in the background.
+## Version 1.1.x — Original Proof of Concept
 
-### 1.2.x
-This is the non-functional consumer facing rewrite for UltraKey. This was done using FlutterSDK compiled for windows.
+This is the original UltraKey proof of concept. It converts mouse and keyboard input into controller input using:
 
-You need a gcc compiler and Flutter SDK to build the project.
+- ViGEmBus  
+- Oblitum input interception  
 
-Currently, powershell is being used for the build system but it can be easily ported to shell or any other script type.
+### Build Requirements
+- GCC compiler  
+- `py-to-exe`  
+- PowerShell (used for the current build system, but can be ported to shell or another scripting language)
 
-Insert your discord API keys into `1.2.x/ultrakey_ui/license.key`to enable authentication for the front end. The software will not work without it.
+### Authentication
+To enable frontend authentication, insert your Discord API keys into:
 
-The source for the backend is under `1.2.x/ultrakey_emu` and the front end is under `1.1.x/ultrakey_ui`. Similar to 1.1.x this version contains a packer/runner to hide the program while running.
 
-### Auth Server
-The auth server is under server.py and needs to be hosted remotely.
+> ⚠️ The software will **not function** without valid API keys.
+
+### Project Structure
+- **Backend:** `1.1.x/ultrakey_emu`  
+- **Frontend:** `1.1.x/ultrakey_ui`  
+
+### Packaging & Obfuscation
+This version includes a basic binary obfuscator/wrapper:
+
+- The build process packages and encrypts the executable.
+- `ultrakey_run` decrypts, unpacks, and executes the binary in the background at runtime.
+
+---
+
+## Version 1.2.x — Consumer-Facing Rewrite (Non-Functional)
+
+This is a non-functional rewrite of UltraKey intended for consumer use. The UI was rebuilt using **Flutter SDK** targeting Windows.
+
+### Build Requirements
+- GCC compiler  
+- Flutter SDK  
+- PowerShell (used for the current build system, but can be ported easily)
+
+### Authentication
+To enable frontend authentication, insert your Discord API keys into:
+
+> ⚠️ The software will **not function** without valid API keys.
+
+### Project Structure
+- **Backend:** `1.2.x/ultrakey_emu`  
+- **Frontend:** `1.2.x/ultrakey_ui`  
+
+> Note: This version follows a similar architecture to 1.1.x, including a packer/runner used to hide the executable while running.
+
+---
+
+## Auth Server
+
+The authentication server is implemented in:
+`server.py`
+It must be hosted remotely for authentication to function.
