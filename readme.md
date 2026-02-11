@@ -6,19 +6,29 @@ As of **1/13/2026**, the remote host for UltraKey has been suspended.
 
 From memory, the UI and authentication layers are somewhat coupled to the web service, but this should be easy to decouple. You can likely point the UI to a different service by modifying a small set of variables in a shared header or config file.
 
+## Core emulator
+The core emulator can be extracted and will be perfectly functional without the UI.
+The emulator had some major changes from 1.1.x to 1.2.x including:
+
+- Increased polling rate
+- LUA Scripting interface changes
+- Thread contention and high core usage fixes
+- Internal task scheduler & ISR added
+- Obfuscator removed
+
 ---
 
-## Version 1.1.x — Original Proof of Concept
+## Version 1.1.x
 
 This is the original UltraKey proof of concept. It converts mouse and keyboard input into controller input using:
 
 - ViGEmBus  
-- Oblitum input interception  
+- Oblitum Interception  
 
 ### Build Requirements
-- GCC compiler  
-- `py-to-exe`  
-- PowerShell (used for the current build system, but can be ported to shell or another scripting language)
+- [GCC compiler](https://www.msys2.org/)
+- [py2exe](https://www.py2exe.org/)
+- [PowerShell](https://learn.microsoft.com/en-us/powershell/scripting/install/install-powershell-on-windows?view=powershell-7.5)
 
 ### Authentication
 To enable frontend authentication, insert your Discord API keys into:
@@ -38,14 +48,14 @@ This version includes a basic binary obfuscator/wrapper:
 
 ---
 
-## Version 1.2.x — Consumer-Facing Rewrite (Non-Functional)
+## Version 1.2.x — (Non-Functional, Flutter Port)
 
 This is a non-functional rewrite of UltraKey intended for consumer use. The UI was rebuilt using **Flutter SDK** targeting Windows.
 
 ### Build Requirements
-- GCC compiler  
-- Flutter SDK  
-- PowerShell (used for the current build system, but can be ported easily)
+- [GCC compiler](https://www.msys2.org/)
+- [Flutter SDK](https://docs.flutter.dev/install)
+- [PowerShell](https://learn.microsoft.com/en-us/powershell/scripting/install/)
 
 ### Authentication
 To enable frontend authentication, insert your Discord API keys into:
